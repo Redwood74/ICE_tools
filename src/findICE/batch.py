@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -93,7 +93,7 @@ def load_people(path: Path) -> list[PersonConfig]:
         raise ConfigError(
             "PyYAML is required for multi-person mode. Install with: "
             "pip install pyyaml"
-        )
+        ) from None
 
     try:
         raw = path.read_text(encoding="utf-8")
@@ -184,6 +184,7 @@ def execute_batch(
     Returns:
         List of RunSummary objects, one per person.
     """
+    from findICE.exceptions import BotChallengeError
     from findICE.main import execute_run
 
     summaries = []
@@ -200,7 +201,17 @@ def execute_batch(
             logger.error("Skipping '%s': %s", person.label, exc)
             continue
 
-        summary = execute_run(person_config, verbose_console=verbose_console)
+        try:
+            summary = execute_run(person_config, verbose_console=verbose_console)
+        except BotChallengeError as exc:
+            logger.error(
+                "Batch [%d/%d]: '%s' hit bot challenge – skipping: %s",
+                i,
+                total,
+                person.label,
+                exc,
+            )
+            continue
         summary.person_label = person.label
         summaries.append(summary)
 

@@ -53,6 +53,13 @@ def _restrict_file_permissions(path: Path) -> None:
 
 def _ensure_dir(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
+    try:
+        if _IS_WINDOWS:
+            os.chmod(str(path), stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        else:
+            os.chmod(str(path), 0o700)
+    except OSError as exc:
+        logger.debug("Could not restrict directory permissions on %s: %s", path, exc)
     return path
 
 
@@ -246,7 +253,6 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
 
     Returns the path to the saved report, or None on failure.
     """
-    import base64
 
     best = summary.best_result
     state_val = summary.best_state.value
@@ -387,10 +393,7 @@ def _embed_screenshot(
 
 
 def _html_escape(text: str) -> str:
-    """Minimal HTML escaping for report content."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
+    """HTML-escape report content using the standard library."""
+    import html
+
+    return html.escape(text, quote=True)

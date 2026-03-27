@@ -361,14 +361,18 @@ def _collect_facility_more_information(page, result: SearchResult) -> object | N
         return None
 
     info_page = page.context.new_page()
-    info_page.goto(
-        result.facility_more_information_url,
-        wait_until="domcontentloaded",
-        timeout=PAGE_LOAD_TIMEOUT_MS,
-    )
-    info_page.wait_for_timeout(1_000)
-    more_info_data = _extract_more_information_data(info_page)
-    _apply_detail_page_data(result, more_info_data)
+    try:
+        info_page.goto(
+            result.facility_more_information_url,
+            wait_until="domcontentloaded",
+            timeout=PAGE_LOAD_TIMEOUT_MS,
+        )
+        info_page.wait_for_timeout(1_000)
+        more_info_data = _extract_more_information_data(info_page)
+        _apply_detail_page_data(result, more_info_data)
+    except Exception:
+        info_page.close()
+        raise
     return info_page
 
 

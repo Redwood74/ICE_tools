@@ -11,7 +11,6 @@ This module coordinates:
 from __future__ import annotations
 
 import logging
-import sys
 from datetime import datetime, timezone
 
 from findICE.artifacts import (
@@ -134,11 +133,10 @@ def execute_run(
 
     if summary.best_state == ResultState.BOT_CHALLENGE_OR_BLOCKED:
         logger.error(
-            "Bot challenge detected – saving artifacts and exiting with code %d",
-            BotChallengeError.EXIT_CODE,
+            "Bot challenge detected – saving artifacts and raising BotChallengeError",
         )
         _persist()
-        sys.exit(BotChallengeError.EXIT_CODE)
+        raise BotChallengeError(f"Run {run_id}: bot challenge or block detected")
 
     if summary.best_state == ResultState.LIKELY_POSITIVE and summary.best_result:
         content_hash = summary.best_result.content_hash

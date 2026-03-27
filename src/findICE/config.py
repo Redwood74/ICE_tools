@@ -101,8 +101,8 @@ class AppConfig:
         a_digits = re.sub(r"\D", "", self.a_number)
         if not a_digits or len(a_digits) not in (8, 9):
             errors.append(
-                f"A_NUMBER must be an 8- or 9-digit alien registration number "
-                f"(got '{self.a_number}')"
+                "A_NUMBER must be an 8- or 9-digit alien registration number "
+                f"(got {len(a_digits)} digit(s))"
             )
 
         if not self.country.strip():

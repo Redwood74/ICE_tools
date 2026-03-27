@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 from findICE import __version__
+from findICE.exceptions import BotChallengeError
 from findICE.logging_utils import configure_logging
 
 # ---------------------------------------------------------------------------
@@ -205,7 +206,11 @@ def cmd_check_once(args: argparse.Namespace) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
-    summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
+    try:
+        summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
+    except BotChallengeError:
+        print("Bot challenge detected – see artifacts for details.", file=sys.stderr)
+        return BotChallengeError.EXIT_CODE
     facility = ""
     if summary.best_result and summary.best_result.detention_facility:
         facility = f" detention_facility={summary.best_result.detention_facility}"
@@ -409,7 +414,7 @@ def cmd_classify_sample(args: argparse.Namespace) -> int:
 
 def cmd_check_batch(args: argparse.Namespace) -> int:
     """Run batch checks for multiple people from a YAML config."""
-    from findICE.batch import load_people, execute_batch
+    from findICE.batch import execute_batch, load_people
     from findICE.config import load_config
 
     cfg = load_config(
@@ -482,7 +487,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
             if "=" in line:
                 key, _, val = line.partition("=")
                 existing[key.strip()] = val.strip()
-        print(f"Found existing .env — current values shown as defaults.\n")
+        print("Found existing .env — current values shown as defaults.\n")
     else:
         print("No .env file found — creating a new one.\n")
 

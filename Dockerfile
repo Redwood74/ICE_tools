@@ -23,6 +23,11 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # Install Playwright Chromium
 RUN playwright install chromium
 
+# Run as non-root user
+RUN useradd -m -u 1000 findice && \
+    chown -R findice:findice /app
+USER findice
+
 # Default volumes for config, artifacts, state
 VOLUME ["/app/artifacts", "/app/state"]
 

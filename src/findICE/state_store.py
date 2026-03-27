@@ -27,8 +27,12 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
-from datetime import datetime, timezone, timedelta
+import stat
+import sys
+import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from findICE.exceptions import StateStoreError
@@ -238,9 +242,24 @@ class StateStore:
     def _save(self) -> None:
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.path.write_text(
-                json.dumps(self._state, indent=2, default=str), encoding="utf-8"
-            )
+            # Atomic write via temp file to avoid corruption on crash
+            fd, tmp_path = tempfile.mkstemp(dir=str(self.path.parent), suffix=".tmp")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump(self._state, f, indent=2, default=str)
+                # Restrict permissions before moving into place
+                if sys.platform == "win32":
+                    os.chmod(tmp_path, stat.S_IRUSR | stat.S_IWUSR)
+                else:
+                    os.chmod(tmp_path, 0o600)
+                shutil.move(tmp_path, str(self.path))
+            except BaseException:
+                # Clean up temp file on failure
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
             logger.debug("State saved to %s", self.path)
         except Exception as exc:
             raise StateStoreError(
