@@ -145,7 +145,10 @@ def cmd_check_once(args: argparse.Namespace) -> int:
         return 1
 
     summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
-    print(f"Run complete: best_state={summary.best_state.value}")
+    facility = ""
+    if summary.best_result and summary.best_result.detention_facility:
+        facility = f" detention_facility={summary.best_result.detention_facility}"
+    print(f"Run complete: best_state={summary.best_state.value}{facility}")
     return 0
 
 
@@ -176,7 +179,10 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
             f"(attempts={cfg.attempts_per_run}, headless={cfg.headless}, dry_run=True)"
         )
         summary = execute_run(cfg, verbose_console=False)
-        print(f"Live smoke test complete: best_state={summary.best_state.value}")
+        facility = ""
+        if summary.best_result and summary.best_result.detention_facility:
+            facility = f" detention_facility={summary.best_result.detention_facility}"
+        print(f"Live smoke test complete: best_state={summary.best_state.value}{facility}")
         if summary.best_state == ResultState.ERROR:
             return 1
         return 0

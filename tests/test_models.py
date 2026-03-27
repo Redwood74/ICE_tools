@@ -1,8 +1,8 @@
-"""Tests for content hash / deduplication in SearchResult."""
+"""Tests for model helpers and serialization."""
 
 from __future__ import annotations
 
-from findICE.models import ResultState, SearchResult
+from findICE.models import ResultState, RunSummary, SearchResult
 
 
 class TestContentHash:
@@ -33,3 +33,43 @@ class TestContentHash:
     def test_hash_prefix_matches_hash(self):
         r = SearchResult(state=ResultState.LIKELY_POSITIVE, raw_text="test")
         assert r.content_hash.startswith(r.hash_prefix)
+
+    def test_detail_page_text_affects_hash(self):
+        r1 = SearchResult(
+            state=ResultState.LIKELY_POSITIVE,
+            raw_text="result text",
+            detail_page_text="facility details a",
+        )
+        r2 = SearchResult(
+            state=ResultState.LIKELY_POSITIVE,
+            raw_text="result text",
+            detail_page_text="facility details b",
+        )
+        assert r1.content_hash != r2.content_hash
+
+
+class TestRunSummary:
+    def test_to_dict_includes_facility_fields(self):
+        result = SearchResult(
+            state=ResultState.LIKELY_POSITIVE,
+            raw_text="result text",
+            detention_facility="Facility A",
+            facility_address="123 Main St",
+            visitor_information="(555) 000-1111",
+            ero_office_name="Salt Lake City",
+            ero_office_phone="(801) 736-1200",
+            detail_page_url="https://example.com/details",
+            facility_more_information_url="https://example.com/facility",
+        )
+        summary = RunSummary(
+            a_number_masked="A-*******89",
+            country="CHILE",
+            attempts_total=1,
+            best_state=ResultState.LIKELY_POSITIVE,
+            best_result=result,
+        )
+
+        data = summary.to_dict()
+        assert data["detention_facility"] == "Facility A"
+        assert data["facility_address"] == "123 Main St"
+        assert data["ero_office_phone"] == "(801) 736-1200"

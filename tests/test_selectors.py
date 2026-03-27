@@ -6,6 +6,7 @@ from findICE.selectors import (
     A_NUMBER_INPUT,
     BOT_CHALLENGE_PHRASES,
     COUNTRY_SELECT,
+    DETENTION_FACILITY_LINK,
     POSITIVE_PHRASES,
     SEARCH_BUTTON,
     ZERO_RESULT_PHRASES,
@@ -24,6 +25,9 @@ class TestSelectorGroupStructure:
 
     def test_search_button_has_candidates(self):
         assert len(SEARCH_BUTTON.candidates) > 0
+
+    def test_detention_facility_link_has_candidates(self):
+        assert len(DETENTION_FACILITY_LINK.candidates) > 0
 
     def test_a_number_input_includes_label_selector(self):
         """Label-based selectors should appear before CSS fallbacks."""
@@ -51,6 +55,11 @@ class TestPhraseListsNotEmpty:
     def test_bot_challenge_phrases_populated(self):
         assert len(BOT_CHALLENGE_PHRASES) > 0
         assert any("captcha" in p for p in BOT_CHALLENGE_PHRASES)
+
+    def test_result_container_prefers_structured_ids(self):
+        from findICE.selectors import RESULT_CONTAINER
+
+        assert RESULT_CONTAINER.candidates[0] == "#resultsPage"
 
 
 class TestResolveLocator:

@@ -25,8 +25,26 @@ class SearchResult:
     state: ResultState
     raw_text: str
     page_title: str = ""
+    detention_facility: str | None = None
+    facility_address: str | None = None
+    visitor_information: str | None = None
+    ero_office_name: str | None = None
+    ero_office_phone: str | None = None
+    facility_more_information_url: str | None = None
+    facility_more_information_title: str = ""
+    facility_more_information_text: str = ""
+    facility_tabs: dict[str, str] = field(default_factory=dict)
+    detail_page_text: str = ""
+    detail_page_title: str = ""
+    detail_page_url: str = ""
     screenshot_path: str | None = None
     html_path: str | None = None
+    detail_page_screenshot_path: str | None = None
+    detail_page_html_path: str | None = None
+    detail_page_text_path: str | None = None
+    facility_more_information_screenshot_path: str | None = None
+    facility_more_information_html_path: str | None = None
+    facility_more_information_text_path: str | None = None
     error_detail: str | None = None
     attempt_number: int = 0
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -34,7 +52,9 @@ class SearchResult:
     @property
     def content_hash(self) -> str:
         """Stable SHA-256 hash of the normalised raw text, for deduplication."""
-        normalised = self.raw_text.strip().lower()
+        normalised = (
+            f"{self.raw_text}\n{self.detail_page_text}\n{self.facility_more_information_text}"
+        ).strip().lower()
         return hashlib.sha256(normalised.encode()).hexdigest()
 
     @property
@@ -71,6 +91,19 @@ class RunSummary:
             "artifact_dir": self.artifact_dir,
             "best_result_hash": self.best_result.content_hash if self.best_result else None,
             "best_result_hash_prefix": self.best_result.hash_prefix if self.best_result else None,
+            "detention_facility": self.best_result.detention_facility if self.best_result else None,
+            "facility_address": self.best_result.facility_address if self.best_result else None,
+            "visitor_information": self.best_result.visitor_information if self.best_result else None,
+            "ero_office_name": self.best_result.ero_office_name if self.best_result else None,
+            "ero_office_phone": self.best_result.ero_office_phone if self.best_result else None,
+            "detail_page_url": self.best_result.detail_page_url if self.best_result else None,
+            "facility_more_information_url": (
+                self.best_result.facility_more_information_url if self.best_result else None
+            ),
+            "facility_more_information_title": (
+                self.best_result.facility_more_information_title if self.best_result else None
+            ),
+            "facility_tabs": self.best_result.facility_tabs if self.best_result else None,
         }
 
 

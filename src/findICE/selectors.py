@@ -99,6 +99,8 @@ SEARCH_BUTTON = SelectorGroup(
 RESULT_CONTAINER = SelectorGroup(
     name="result_container",
     candidates=[
+        "#resultsPage",
+        "#detentionPage",
         "[aria-label*='result' i]",
         ".search-results",
         "#searchResults",
@@ -108,6 +110,15 @@ RESULT_CONTAINER = SelectorGroup(
         "table",
         "main",
         "body",
+    ],
+)
+
+DETENTION_FACILITY_LINK = SelectorGroup(
+    name="detention_facility_link",
+    candidates=[
+        "#resultsPage span.detention-link",
+        "span.detention-link",
+        ".detention-link",
     ],
 )
 
