@@ -1,0 +1,9 @@
+# ICEpicks runtime dependencies
+# Generated from pyproject.toml [project.dependencies]
+# Pin for reproducibility; update with: pip-compile requirements.in
+
+playwright>=1.42.0
+python-dotenv>=1.0.0
+
+# Optional: uncomment to enable keyring secret storage
+# keyring>=24.0.0

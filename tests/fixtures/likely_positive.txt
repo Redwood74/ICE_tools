@@ -1,0 +1,13 @@
+ICE Online Detainee Locator
+
+Search Results
+
+1 Search Results
+
+Detainee Information
+
+First Name: JOSE
+Last Name: GARCIA
+Country of Birth: MEXICO
+Book-In Date: 01/15/2024
+Detention Facility: [FACILITY NAME]
