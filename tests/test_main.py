@@ -38,7 +38,9 @@ class TestExecuteRunNotificationState:
         cfg = _base_config(tmp_path)
         cfg.dry_run = True
 
-        monkeypatch.setattr("findICE.main.run_with_retries", lambda **kwargs: [_positive_result()])
+        monkeypatch.setattr(
+            "findICE.main.run_with_retries", lambda **kwargs: [_positive_result()]
+        )
         monkeypatch.setattr(
             "findICE.main.build_notifier",
             lambda **kwargs: [_AlwaysOkNotifier()],
@@ -56,7 +58,9 @@ class TestExecuteRunNotificationState:
         cfg.dry_run = False
         cfg.teams_webhook_url = "https://example.com/webhook"
 
-        monkeypatch.setattr("findICE.main.run_with_retries", lambda **kwargs: [_positive_result()])
+        monkeypatch.setattr(
+            "findICE.main.run_with_retries", lambda **kwargs: [_positive_result()]
+        )
         monkeypatch.setattr(
             "findICE.main.build_notifier",
             lambda **kwargs: [_AlwaysOkNotifier()],
@@ -68,3 +72,89 @@ class TestExecuteRunNotificationState:
 
         store = StateStore(cfg.state_file)
         assert store.is_new_positive(_positive_result().content_hash) is False
+
+
+class TestExecuteRunBotChallenge:
+    def test_bot_challenge_raises_after_persist(self, tmp_path, monkeypatch):
+        from findICE.exceptions import BotChallengeError
+
+        cfg = _base_config(tmp_path)
+
+        def fake_retries(**kwargs):
+            return [
+                SearchResult(
+                    state=ResultState.BOT_CHALLENGE_OR_BLOCKED,
+                    raw_text="verify you are human",
+                    attempt_number=1,
+                )
+            ]
+
+        monkeypatch.setattr("findICE.main.run_with_retries", fake_retries)
+        monkeypatch.setattr(
+            "findICE.main.build_notifier",
+            lambda **kwargs: [_AlwaysOkNotifier()],
+        )
+
+        import pytest
+
+        with pytest.raises(BotChallengeError):
+            execute_run(cfg, run_id="run_bot_test")
+
+        # State should still have been persisted before raising
+        store = StateStore(cfg.state_file)
+        assert store.run_count >= 1
+
+
+class TestExecuteRunSeenHashSkip:
+    def test_already_seen_positive_does_not_notify(self, tmp_path, monkeypatch):
+        cfg = _base_config(tmp_path)
+        cfg.dry_run = False
+        cfg.teams_webhook_url = "https://example.com/webhook"
+
+        monkeypatch.setattr(
+            "findICE.main.run_with_retries",
+            lambda **kwargs: [_positive_result()],
+        )
+
+        sent_count = {"value": 0}
+
+        class _CountingNotifier:
+            def send(self, payload) -> bool:
+                sent_count["value"] += 1
+                return True
+
+        monkeypatch.setattr(
+            "findICE.main.build_notifier",
+            lambda **kwargs: [_CountingNotifier()],
+        )
+
+        # First run — should notify and record
+        summary1 = execute_run(cfg, run_id="run_seen_1")
+        assert summary1.notified is True
+        assert sent_count["value"] == 1
+
+        # Second run with same content hash — should NOT notify again
+        summary2 = execute_run(cfg, run_id="run_seen_2")
+        assert summary2.notified is False
+        assert sent_count["value"] == 1  # unchanged
+
+
+class TestExecuteRunErrorPath:
+    def test_error_run_persists_state(self, tmp_path, monkeypatch):
+        cfg = _base_config(tmp_path)
+
+        def fake_retries(**kwargs):
+            raise RuntimeError("unexpected crash")
+
+        monkeypatch.setattr("findICE.main.run_with_retries", fake_retries)
+        monkeypatch.setattr(
+            "findICE.main.build_notifier",
+            lambda **kwargs: [_AlwaysOkNotifier()],
+        )
+
+        summary = execute_run(cfg, run_id="run_error_test")
+        assert summary.best_state == ResultState.ERROR
+
+        # State should still be recorded
+        store = StateStore(cfg.state_file)
+        assert store.run_count >= 1

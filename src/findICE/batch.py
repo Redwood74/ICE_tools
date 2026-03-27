@@ -107,6 +107,13 @@ def load_people(path: Path) -> list[PersonConfig]:
             f"'{path}' must contain a 'people' list with at least one entry"
         )
 
+    # Validate entries are dicts before accessing attributes
+    for entry in people_list:
+        if not isinstance(entry, dict):
+            raise ConfigError(
+                f"Each item in 'people' must be a mapping, got: {entry!r}"
+            )
+
     # Check for duplicate labels
     labels = [p.get("label", "") for p in people_list]
     seen: set[str] = set()
@@ -117,10 +124,6 @@ def load_people(path: Path) -> list[PersonConfig]:
 
     people: list[PersonConfig] = []
     for entry in people_list:
-        if not isinstance(entry, dict):
-            raise ConfigError(
-                f"Each item in 'people' must be a mapping, got: {entry!r}"
-            )
         person = PersonConfig(
             label=str(entry.get("label", "")),
             a_number=str(entry.get("a_number", "")),

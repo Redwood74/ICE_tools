@@ -35,6 +35,8 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from filelock import FileLock
+
 from findICE.exceptions import StateStoreError
 
 logger = logging.getLogger(__name__)
@@ -56,6 +58,7 @@ class StateStore:
     ) -> None:
         self.path = path
         self.retention_hours = retention_hours
+        self._lock = FileLock(str(path) + ".lock")
         self._state: dict = {}
         self._load()
 
@@ -171,41 +174,42 @@ class StateStore:
         cutoff = datetime.now(timezone.utc) - timedelta(hours=self.retention_hours)
         purged = 0
 
-        for run_dir in sorted(artifact_base_dir.iterdir()):
-            if not run_dir.is_dir() or not run_dir.name.startswith("run_"):
-                continue
+        with self._lock:
+            for run_dir in sorted(artifact_base_dir.iterdir()):
+                if not run_dir.is_dir() or not run_dir.name.startswith("run_"):
+                    continue
 
-            # Parse timestamp from directory name: run_YYYYMMDDTHHMMSSZ
-            try:
-                ts_str = run_dir.name.split("_", 1)[1]
-                dir_time = datetime.strptime(ts_str, "%Y%m%dT%H%M%SZ").replace(
-                    tzinfo=timezone.utc
-                )
-            except (ValueError, IndexError):
-                continue
-
-            if dir_time >= cutoff:
-                continue
-
-            # Preserve run_summary.json before deleting
-            summary_src = run_dir / "run_summary.json"
-            if summary_src.exists():
-                archive_dir = artifact_base_dir / "_history"
-                archive_dir.mkdir(parents=True, exist_ok=True)
-                summary_dst = archive_dir / f"{run_dir.name}_summary.json"
+                # Parse timestamp from directory name: run_YYYYMMDDTHHMMSSZ
                 try:
-                    shutil.copy2(str(summary_src), str(summary_dst))
-                except OSError as exc:
-                    logger.warning(
-                        "Could not archive summary for %s: %s", run_dir.name, exc
+                    ts_str = run_dir.name.split("_", 1)[1]
+                    dir_time = datetime.strptime(ts_str, "%Y%m%dT%H%M%SZ").replace(
+                        tzinfo=timezone.utc
                     )
+                except (ValueError, IndexError):
+                    continue
 
-            try:
-                shutil.rmtree(str(run_dir))
-                purged += 1
-                logger.debug("Purged old artifact directory: %s", run_dir.name)
-            except OSError as exc:
-                logger.warning("Could not purge %s: %s", run_dir.name, exc)
+                if dir_time >= cutoff:
+                    continue
+
+                # Preserve run_summary.json before deleting
+                summary_src = run_dir / "run_summary.json"
+                if summary_src.exists():
+                    archive_dir = artifact_base_dir / "_history"
+                    archive_dir.mkdir(parents=True, exist_ok=True)
+                    summary_dst = archive_dir / f"{run_dir.name}_summary.json"
+                    try:
+                        shutil.copy2(str(summary_src), str(summary_dst))
+                    except OSError as exc:
+                        logger.warning(
+                            "Could not archive summary for %s: %s", run_dir.name, exc
+                        )
+
+                try:
+                    shutil.rmtree(str(run_dir))
+                    purged += 1
+                    logger.debug("Purged old artifact directory: %s", run_dir.name)
+                except OSError as exc:
+                    logger.warning("Could not purge %s: %s", run_dir.name, exc)
 
         if purged:
             logger.info(
@@ -221,47 +225,53 @@ class StateStore:
     # ------------------------------------------------------------------
 
     def _load(self) -> None:
-        if self.path.exists():
-            try:
-                self._state = json.loads(self.path.read_text(encoding="utf-8"))
-                logger.debug("State loaded from %s", self.path)
-                # Migrate v1 → v2 if needed
-                if self._state.get("schema_version", 1) < 2:
-                    self._state.setdefault("timeline", [])
-                    self._state.setdefault("last_success_at", None)
-                    self._state["schema_version"] = 2
-            except Exception as exc:
-                logger.warning(
-                    "Could not read state file %s: %s – starting fresh", self.path, exc
-                )
+        with self._lock:
+            if self.path.exists():
+                try:
+                    self._state = json.loads(self.path.read_text(encoding="utf-8"))
+                    logger.debug("State loaded from %s", self.path)
+                    # Migrate v1 → v2 if needed
+                    if self._state.get("schema_version", 1) < 2:
+                        self._state.setdefault("timeline", [])
+                        self._state.setdefault("last_success_at", None)
+                        self._state["schema_version"] = 2
+                except Exception as exc:
+                    logger.warning(
+                        "Could not read state file %s: %s – starting fresh",
+                        self.path,
+                        exc,
+                    )
+                    self._state = {}
+            else:
+                logger.debug("No state file at %s – starting fresh", self.path)
                 self._state = {}
-        else:
-            logger.debug("No state file at %s – starting fresh", self.path)
-            self._state = {}
 
     def _save(self) -> None:
-        try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            # Atomic write via temp file to avoid corruption on crash
-            fd, tmp_path = tempfile.mkstemp(dir=str(self.path.parent), suffix=".tmp")
+        with self._lock:
             try:
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    json.dump(self._state, f, indent=2, default=str)
-                # Restrict permissions before moving into place
-                if sys.platform == "win32":
-                    os.chmod(tmp_path, stat.S_IRUSR | stat.S_IWUSR)
-                else:
-                    os.chmod(tmp_path, 0o600)
-                shutil.move(tmp_path, str(self.path))
-            except BaseException:
-                # Clean up temp file on failure
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                # Atomic write via temp file to avoid corruption on crash
+                fd, tmp_path = tempfile.mkstemp(
+                    dir=str(self.path.parent), suffix=".tmp"
+                )
                 try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
-                raise
-            logger.debug("State saved to %s", self.path)
-        except Exception as exc:
-            raise StateStoreError(
-                f"Failed to save state to {self.path}: {exc}"
-            ) from exc
+                    with os.fdopen(fd, "w", encoding="utf-8") as f:
+                        json.dump(self._state, f, indent=2, default=str)
+                    # Restrict permissions before moving into place
+                    if sys.platform == "win32":
+                        os.chmod(tmp_path, stat.S_IRUSR | stat.S_IWUSR)
+                    else:
+                        os.chmod(tmp_path, 0o600)
+                    shutil.move(tmp_path, str(self.path))
+                except BaseException:
+                    # Clean up temp file on failure
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                    raise
+                logger.debug("State saved to %s", self.path)
+            except Exception as exc:
+                raise StateStoreError(
+                    f"Failed to save state to {self.path}: {exc}"
+                ) from exc
