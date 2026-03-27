@@ -6,8 +6,8 @@ Search Results
 
 Detainee Information
 
-First Name: JOSE
-Last Name: GARCIA
+First Name: JOHN
+Last Name: DOE
 Country of Birth: MEXICO
 Book-In Date: 01/15/2024
 Detention Facility: [FACILITY NAME]

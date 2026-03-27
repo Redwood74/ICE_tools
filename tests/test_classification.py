@@ -26,8 +26,8 @@ class TestClassifyPageText:
     def test_likely_positive_full_record(self):
         text = (
             "1 Search Result\n"
-            "First Name: JOSE\n"
-            "Last Name: GARCIA\n"
+            "First Name: JOHN\n"
+            "Last Name: DOE\n"
             "Country of Birth: MEXICO\n"
             "Book-In Date: 01/15/2024\n"
             "Detention Facility: Some Facility\n"
