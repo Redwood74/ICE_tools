@@ -1,0 +1,296 @@
+"""Command-line interface for findICE.
+
+Commands:
+  check-once       Run a single multi-attempt ICE locator query.
+  smoke-test       Run the classification pipeline on local fixtures only.
+  print-config     Print the resolved config (redacted).
+  verify-webhook   Send a test message to the configured Teams webhook.
+  classify-sample  Classify a named sample fixture and print the result.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+
+from findICE import __version__
+from findICE.logging_utils import configure_logging
+
+# ---------------------------------------------------------------------------
+# Argument parser
+# ---------------------------------------------------------------------------
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="findice",
+        description=(
+            "ICEpicks – ICE Online Detainee Locator monitor.\n"
+            "Run 'findice <command> --help' for per-command help."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+
+    subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
+
+    # --- check-once ---
+    p_check = subparsers.add_parser(
+        "check-once",
+        help="Run a multi-attempt ICE locator check.",
+        description="Runs N fresh browser attempts and notifies if a new positive is found.",
+    )
+    p_check.add_argument("--a-number", metavar="ANUMBER", help="Alien registration number")
+    p_check.add_argument("--country", metavar="COUNTRY", help="Country of origin")
+    p_check.add_argument("--attempts", type=int, metavar="N", help="Attempts per run")
+    p_check.add_argument("--headed", action="store_true", help="Run browser in headed mode")
+    p_check.add_argument("--dry-run", action="store_true", help="Skip Teams notification")
+    p_check.add_argument("--verbose", "-v", action="store_true", help="Print to console too")
+    p_check.add_argument("--log-level", default=None, metavar="LEVEL", help="DEBUG/INFO/WARNING")
+
+    # --- smoke-test ---
+    p_smoke = subparsers.add_parser(
+        "smoke-test",
+        help="Run classification against local fixture files (no live ICE queries).",
+        description="Exercises the classification pipeline without touching the ICE site.",
+    )
+    p_smoke.add_argument(
+        "--fixture-dir",
+        default=None,
+        metavar="DIR",
+        help="Override default fixture directory",
+    )
+
+    # --- print-config ---
+    subparsers.add_parser(
+        "print-config",
+        help="Show the resolved configuration (secrets redacted).",
+    )
+
+    # --- verify-webhook ---
+    subparsers.add_parser(
+        "verify-webhook",
+        help="Send a test message to the configured Teams webhook.",
+    )
+
+    # --- classify-sample ---
+    p_classify = subparsers.add_parser(
+        "classify-sample",
+        help="Classify a named sample fixture (zero/positive/ambiguous/blocked).",
+        description=(
+            "Classify a named fixture without running the browser.\n"
+            "Valid names: zero, positive, ambiguous, blocked"
+        ),
+    )
+    p_classify.add_argument(
+        "sample",
+        metavar="SAMPLE",
+        nargs="?",
+        default=None,
+        help="Fixture name: zero | positive | ambiguous | blocked",
+    )
+    p_classify.add_argument(
+        "--list", action="store_true", help="List all available fixture names"
+    )
+
+    return parser
+
+
+# ---------------------------------------------------------------------------
+# Command implementations
+# ---------------------------------------------------------------------------
+
+
+def cmd_check_once(args: argparse.Namespace) -> int:
+    from findICE.config import load_config
+    from findICE.main import execute_run
+
+    cfg = load_config(
+        override_a_number=args.a_number,
+        override_country=args.country,
+        override_attempts=args.attempts,
+        override_headless=not args.headed if args.headed else None,
+        override_dry_run=args.dry_run or None,
+    )
+
+    log_level = getattr(logging, (args.log_level or cfg.log_level).upper(), logging.DEBUG)
+    configure_logging(level=log_level, a_number=cfg.a_number, log_file=cfg.log_file)
+
+    try:
+        cfg.validate()
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+    summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
+    print(f"Run complete: best_state={summary.best_state.value}")
+    return 0
+
+
+def cmd_smoke_test(args: argparse.Namespace) -> int:
+    """Run classification against all local fixture files."""
+    from findICE.classification import classify_page_text
+
+    fixture_dir = (
+        Path(args.fixture_dir)
+        if args.fixture_dir
+        else Path(__file__).parent.parent.parent / "tests" / "fixtures"
+    )
+
+    configure_logging(level=logging.INFO)
+
+    txt_files = sorted(fixture_dir.glob("*.txt"))
+    if not txt_files:
+        print(f"No fixture .txt files found in {fixture_dir}", file=sys.stderr)
+        return 1
+
+    print(f"Running smoke test on {len(txt_files)} fixtures in {fixture_dir}")
+    all_passed = True
+    for fpath in txt_files:
+        text = fpath.read_text(encoding="utf-8")
+        state = classify_page_text(text)
+        print(f"  {fpath.name:40s}  →  {state.value}")
+
+    if all_passed:
+        print("Smoke test complete.")
+    return 0
+
+
+def cmd_print_config(args: argparse.Namespace) -> int:
+    from findICE.config import load_config
+
+    configure_logging(level=logging.WARNING)
+    cfg = load_config()
+    print("=== findICE resolved configuration (redacted) ===")
+    print(f"  A-Number (masked)  : {cfg.a_number_masked or '(not set)'}")
+    print(f"  Country            : {cfg.country or '(not set)'}")
+    print(f"  Attempts per run   : {cfg.attempts_per_run}")
+    print(f"  Delay (s)          : {cfg.attempt_delay_seconds}")
+    print(f"  Jitter (s)         : {cfg.attempt_jitter_seconds}")
+    print(f"  Headless           : {cfg.headless}")
+    print(f"  Dry-run            : {cfg.dry_run}")
+    print(f"  Teams webhook      : {'(configured)' if cfg.has_webhook else '(not set)'}")
+    print(f"  Artifact dir       : {cfg.artifact_base_dir}")
+    print(f"  State file         : {cfg.state_file}")
+    print(f"  Log level          : {cfg.log_level}")
+    print(f"  Use keyring        : {cfg.use_keyring}")
+    return 0
+
+
+def cmd_verify_webhook(args: argparse.Namespace) -> int:
+    from datetime import datetime, timezone
+
+    from findICE.config import load_config
+    from findICE.models import NotificationPayload, ResultState
+    from findICE.notifications import TeamsNotifier
+
+    configure_logging(level=logging.INFO)
+    cfg = load_config()
+
+    if not cfg.has_webhook:
+        print("TEAMS_WEBHOOK_URL is not configured.", file=sys.stderr)
+        return 1
+
+    payload = NotificationPayload(
+        a_number_masked="A-*******99",
+        country="TEST",
+        state=ResultState.LIKELY_POSITIVE,
+        attempts=1,
+        hash_prefix="test000000",
+        text_preview="This is a connectivity test from ICEpicks verify-webhook.",
+        timestamp=datetime.now(timezone.utc),
+        run_id="verify-webhook-test",
+    )
+
+    notifier = TeamsNotifier(cfg.teams_webhook_url)
+    ok = notifier.send(payload)
+    if ok:
+        print("Webhook test message sent successfully.")
+        return 0
+    else:
+        print("Webhook test FAILED. Check logs for details.", file=sys.stderr)
+        return 1
+
+
+def cmd_classify_sample(args: argparse.Namespace) -> int:
+    from findICE.classification import classify_page_text
+
+    configure_logging(level=logging.WARNING)
+
+    fixture_dir = (
+        Path(__file__).parent.parent.parent / "tests" / "fixtures"
+    )
+
+    # Map friendly names to fixture file stems
+    name_map = {
+        "zero": "zero_result",
+        "zero_result": "zero_result",
+        "positive": "likely_positive",
+        "likely_positive": "likely_positive",
+        "ambiguous": "ambiguous",
+        "blocked": "bot_blocked",
+        "bot_blocked": "bot_blocked",
+    }
+
+    if getattr(args, "list", False):
+        print("Available fixture names:")
+        for k in sorted(name_map.keys()):
+            print(f"  {k}")
+        return 0
+
+    if not args.sample:
+        print("Provide a sample name. Use --list to see options.", file=sys.stderr)
+        return 1
+
+    key = args.sample.lower().strip()
+    stem = name_map.get(key)
+    if not stem:
+        print(
+            f"Unknown sample '{args.sample}'. Use --list to see options.", file=sys.stderr
+        )
+        return 1
+
+    fpath = fixture_dir / f"{stem}.txt"
+    if not fpath.exists():
+        print(f"Fixture file not found: {fpath}", file=sys.stderr)
+        return 1
+
+    text = fpath.read_text(encoding="utf-8")
+    state = classify_page_text(text)
+    print(f"Sample '{args.sample}' classified as: {state.value}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(0)
+
+    dispatch = {
+        "check-once": cmd_check_once,
+        "smoke-test": cmd_smoke_test,
+        "print-config": cmd_print_config,
+        "verify-webhook": cmd_verify_webhook,
+        "classify-sample": cmd_classify_sample,
+    }
+
+    handler = dispatch.get(args.command)
+    if handler is None:
+        parser.print_help()
+        sys.exit(1)
+
+    sys.exit(handler(args))
+
+
+if __name__ == "__main__":
+    main()
