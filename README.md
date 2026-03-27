@@ -13,6 +13,46 @@ specific person by alien registration number (A-number) and country of origin.
 
 ---
 
+## Quick install (recommended)
+
+**No coding experience required.** Download the project, double-click the
+installer, and answer three questions.
+
+### Windows
+
+1. **Download:** go to
+   [Code → Download ZIP](https://github.com/Redwood74/ICE_tools/archive/refs/heads/main.zip)
+   and save the file.
+2. **Extract:** right-click the ZIP → **Extract All** → choose a folder
+   (e.g. `C:\ICEpicks`).
+3. **Install:** open the extracted folder and **double-click `install.bat`**.
+4. Follow the on-screen prompts — you'll need:
+   - The person's **A-Number** (alien registration number)
+   - Their **country of origin** (exactly as it appears on the ICE site)
+   - *(Optional)* a **Microsoft Teams webhook URL** for notifications
+
+The installer handles Python, dependencies, browser, configuration, and
+scheduling automatically.
+
+### macOS
+
+1. Download and extract the ZIP (same link above).
+2. Open **Terminal**, drag the extracted folder into it, and press Enter.
+3. Run: `bash install.command`
+4. Follow the prompts.
+
+### Linux
+
+1. Download and extract the ZIP.
+2. Open a terminal in the extracted folder.
+3. Run: `bash install.command`
+4. Follow the prompts.
+
+> **Already have Python experience?** See [Manual setup](#manual-setup-windows)
+> below for the traditional `pip install` workflow.
+
+---
+
 ## What it does
 
 1. Opens the ICE locator in a headless Chromium browser (via Playwright).
@@ -47,7 +87,7 @@ the chance of a false negative on any given check.
 
 ---
 
-## Local setup (Windows)
+## Manual setup (Windows)
 
 ```powershell
 # 1. Clone the repo
