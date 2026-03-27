@@ -200,9 +200,7 @@ class StateStore:
                     try:
                         shutil.copy2(str(summary_src), str(summary_dst))
                     except OSError as exc:
-                        logger.warning(
-                            "Could not archive summary for %s: %s", run_dir.name, exc
-                        )
+                        logger.warning("Could not archive summary for %s: %s", run_dir.name, exc)
 
                 try:
                     shutil.rmtree(str(run_dir))
@@ -251,9 +249,7 @@ class StateStore:
             try:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
                 # Atomic write via temp file to avoid corruption on crash
-                fd, tmp_path = tempfile.mkstemp(
-                    dir=str(self.path.parent), suffix=".tmp"
-                )
+                fd, tmp_path = tempfile.mkstemp(dir=str(self.path.parent), suffix=".tmp")
                 try:
                     with os.fdopen(fd, "w", encoding="utf-8") as f:
                         json.dump(self._state, f, indent=2, default=str)
@@ -272,6 +268,4 @@ class StateStore:
                     raise
                 logger.debug("State saved to %s", self.path)
             except Exception as exc:
-                raise StateStoreError(
-                    f"Failed to save state to {self.path}: {exc}"
-                ) from exc
+                raise StateStoreError(f"Failed to save state to {self.path}: {exc}") from exc

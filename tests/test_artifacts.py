@@ -280,12 +280,8 @@ class TestSaveFacilityMoreInfoArtifacts:
         assert len(list(tmp_path.iterdir())) == 0
 
     def test_saves_info_text_when_present(self, tmp_path):
-        result = _make_result(
-            facility_more_information_text="External facility info here"
-        )
-        save_facility_more_information_artifacts(
-            None, result, tmp_path, save_screenshots=False
-        )
+        result = _make_result(facility_more_information_text="External facility info here")
+        save_facility_more_information_artifacts(None, result, tmp_path, save_screenshots=False)
         txt_files = list(tmp_path.glob("*_facility_info.txt"))
         assert len(txt_files) == 1
 

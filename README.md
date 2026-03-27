@@ -1,5 +1,9 @@
 # ICEpicks
 
+[![CI](https://github.com/Redwood74/ICE_tools/actions/workflows/ci.yml/badge.svg)](https://github.com/Redwood74/ICE_tools/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: IAPL](https://img.shields.io/badge/license-IAPL--1.0-green.svg)](LICENSE.md)
+
 [🇪🇸 Leer en español](README.es.md)
 
 **ICEpicks** is a local automation utility that monitors the

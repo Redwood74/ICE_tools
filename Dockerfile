@@ -2,7 +2,9 @@
 # Build:  docker build -t icepicks .
 # Run:    docker run --env-file .env -v ./artifacts:/app/artifacts -v ./state:/app/state icepicks check-once
 
-FROM python:3.12-slim AS base
+# Pin base image for reproducible builds. Update digest periodically.
+# To find the latest digest: docker pull python:3.12-slim && docker inspect --format='{{index .RepoDigests 0}}' python:3.12-slim
+FROM python:3.12-slim@sha256:af4e85f1f34a6a7fa1092acb06e3cac03c11ccadea4e03b837b2e7e109520580 AS base
 
 # Playwright system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

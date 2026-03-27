@@ -102,7 +102,6 @@ class TestRunSummary:
         assert data["facility_more_information_title"] == "Facility Page"
         assert data["facility_tabs"]["Contacting a Detainee"] == "Call the facility"
         assert (
-            data["facility_tab_details"]["contacting_a_detainee"]["phones"][0]
-            == "(555) 000-1111"
+            data["facility_tab_details"]["contacting_a_detainee"]["phones"][0] == "(555) 000-1111"
         )
         assert data["facility_contacting_a_detainee"] == "Call the facility"

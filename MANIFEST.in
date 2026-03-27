@@ -1,0 +1,11 @@
+include README.md
+include README.es.md
+include LICENSE.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include SECURITY.md
+include FAQ.md
+include requirements.txt
+include requirements.in
+include people.yml.example
+recursive-include src/findICE py.typed

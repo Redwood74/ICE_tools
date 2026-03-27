@@ -35,6 +35,19 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "make_run_dir",
+    "save_screenshot",
+    "save_html",
+    "save_text",
+    "save_run_summary",
+    "save_attempt_artifacts",
+    "save_detail_page_artifacts",
+    "save_facility_more_information_artifacts",
+    "generate_run_id",
+    "generate_html_report",
+]
+
 _IS_WINDOWS = sys.platform == "win32"
 
 
@@ -293,7 +306,7 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
         )
         facility_html = f"""
         <h2>Detention Facility</h2>
-        <table style="border-collapse:collapse">{table_rows}</table>
+        <table style="border-collapse:collapse" aria-label="Detention facility details">{table_rows}</table>
         """
 
     # Build screenshot section
@@ -303,6 +316,7 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
             f'<div style="margin-bottom:16px">'
             f"<h3>{_html_escape(label)}</h3>"
             f'<img src="data:image/png;base64,{data}" '
+            f'alt="Screenshot: {_html_escape(label)}" '
             f'style="max-width:100%;border:1px solid #ccc;border-radius:4px" />'
             f"</div>"
             for label, data in screenshots
@@ -313,7 +327,8 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
     states_html = ""
     if summary.all_states:
         badges = " ".join(
-            f'<span style="display:inline-block;padding:2px 8px;margin:2px;'
+            f'<span role="status" aria-label="{s.value}" '
+            f'style="display:inline-block;padding:2px 8px;margin:2px;'
             f"border-radius:3px;color:#fff;"
             f'background:{_STATE_COLORS.get(s.value, "#424242")}">'
             f"{s.value}</span>"
@@ -356,7 +371,7 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
 <p>
   <span class="badge" style="background:{color}">{_html_escape(state_val)}</span>
   &nbsp; {summary.attempts_total} attempt(s)
-  {' &middot; notified' if summary.notified else ''}
+  {" &middot; notified" if summary.notified else ""}
 </p>
 {states_html}
 {facility_html}

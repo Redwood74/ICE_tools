@@ -62,7 +62,8 @@ def _select_country_option(country_sel, country: str, timeout_ms: int) -> None:
         try:
             country_sel.select_option(**kwargs, timeout=timeout_ms)
             return
-        except Exception:
+        except Exception as exc:
+            logger.debug("Country select option %s failed: %s", kwargs, exc)
             continue
 
     option_locs = country_sel.locator("option")
@@ -150,11 +151,12 @@ def _extract_page_text(page) -> str:
             text = result_loc.inner_text(timeout=5_000)
             if text.strip():
                 return text
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Result container inner_text failed: %s", exc)
     try:
         return page.inner_text("body", timeout=5_000)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Body inner_text failed: %s", exc)
         return ""
 
 
@@ -166,7 +168,8 @@ def _extract_detention_facility(page) -> str | None:
     try:
         text = facility_loc.inner_text(timeout=5_000).strip()
         return text or None
-    except Exception:
+    except Exception as exc:
+        logger.debug("Detention facility link inner_text failed: %s", exc)
         return None
 
 
@@ -278,13 +281,13 @@ def _extract_more_information_data(page) -> dict[str, object]:
     """Extract all tab content from the external facility information page."""
     try:
         page.wait_for_load_state("domcontentloaded", timeout=10_000)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("More-info page load state wait failed: %s", exc)
 
     try:
         page.locator("[role='tab'][aria-controls]").first.wait_for(timeout=10_000)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("More-info tab locator wait failed: %s", exc)
 
     tab_locs = page.locator("[role='tab'][aria-controls]")
     tab_count = tab_locs.count()
@@ -302,7 +305,8 @@ def _extract_more_information_data(page) -> dict[str, object]:
         panel = page.locator(f"#{panel_id}")
         try:
             panel.wait_for(timeout=5_000)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Panel %s wait failed: %s", panel_id, exc)
             continue
         panel_content = _extract_panel_content(page, panel_id)
         panel_text = panel_content["text"]
@@ -323,7 +327,10 @@ def _extract_more_information_data(page) -> dict[str, object]:
             facility_more_information_text = re.sub(
                 r"\s+", " ", page.inner_text("main", timeout=5_000)
             ).strip()
-        except Exception:
+        except Exception as exc:
+            logger.debug(
+                "More-info main inner_text failed, falling back to body: %s", exc
+            )
             facility_more_information_text = re.sub(
                 r"\s+", " ", page.inner_text("body", timeout=5_000)
             ).strip()
@@ -355,22 +362,34 @@ def _extract_more_information_data(page) -> dict[str, object]:
     }
 
 
+_ALLOWED_FACILITY_URL_PREFIXES = (
+    "https://locator.ice.gov/",
+    "https://www.ice.gov/",
+)
+
+
 def _collect_facility_more_information(page, result: SearchResult) -> object | None:
     """Open the external facility information page and extract all tab content."""
     if not result.facility_more_information_url:
         return None
 
+    url = result.facility_more_information_url
+    if not any(url.startswith(prefix) for prefix in _ALLOWED_FACILITY_URL_PREFIXES):
+        logger.warning("Refusing to navigate to untrusted facility URL: %s", url)
+        return None
+
     info_page = page.context.new_page()
     try:
         info_page.goto(
-            result.facility_more_information_url,
+            url,
             wait_until="domcontentloaded",
             timeout=PAGE_LOAD_TIMEOUT_MS,
         )
         info_page.wait_for_timeout(1_000)
         more_info_data = _extract_more_information_data(info_page)
         _apply_detail_page_data(result, more_info_data)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Facility more-information collection failed: %s", exc)
         info_page.close()
         raise
     return info_page
@@ -419,8 +438,8 @@ def _wait_for_result(page, timeout_ms: int = SEARCH_RESULT_TIMEOUT_MS) -> None:
             }""",
             timeout=timeout_ms,
         )
-    except Exception:
-        logger.debug("wait_for_result timed out – continuing anyway")
+    except Exception as exc:
+        logger.debug("wait_for_result timed out – continuing anyway: %s", exc)
 
 
 def run_single_attempt(
@@ -577,14 +596,14 @@ def run_single_attempt(
                     run_dir,
                     save_screenshots=save_screenshots and page is not None,
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Error-path artifact save failed: %s", exc)
     finally:
         try:
             context.close()
             browser.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Browser cleanup failed: %s", exc)
 
     return result
 

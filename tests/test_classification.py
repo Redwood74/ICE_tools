@@ -64,17 +64,11 @@ class TestClassifyPageText:
 
     def test_bot_challenge_http_status_403(self):
         text = "Normal looking page text without bot phrases but with long content here yes"
-        assert (
-            classify_page_text(text, http_status=403)
-            == ResultState.BOT_CHALLENGE_OR_BLOCKED
-        )
+        assert classify_page_text(text, http_status=403) == ResultState.BOT_CHALLENGE_OR_BLOCKED
 
     def test_bot_challenge_http_status_429(self):
         text = "Normal looking page text without bot phrases but with long content here yes"
-        assert (
-            classify_page_text(text, http_status=429)
-            == ResultState.BOT_CHALLENGE_OR_BLOCKED
-        )
+        assert classify_page_text(text, http_status=429) == ResultState.BOT_CHALLENGE_OR_BLOCKED
 
     def test_ambiguous_review(self):
         text = (

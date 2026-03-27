@@ -196,9 +196,7 @@ class TestApplyPersonOverrides:
 
     def test_overrides_attempts_when_set(self, tmp_path):
         config = _base_config(tmp_path)
-        person = PersonConfig(
-            label="Client", a_number="A-123456789", country="CHILE", attempts=2
-        )
+        person = PersonConfig(label="Client", a_number="A-123456789", country="CHILE", attempts=2)
         result = _apply_person_overrides(config, person)
         assert result.attempts_per_run == 2
 
@@ -254,9 +252,7 @@ class TestExecuteBatch:
             PersonConfig(label="A", a_number="A-123456789", country="CHILE"),
             PersonConfig(label="B", a_number="A-987654321", country="MEXICO"),
         ]
-        summaries = execute_batch(
-            config, people, inter_person_delay=0, verbose_console=False
-        )
+        summaries = execute_batch(config, people, inter_person_delay=0, verbose_console=False)
         assert len(summaries) == 2
         assert call_count["value"] == 2
 
@@ -290,9 +286,7 @@ class TestExecuteBatch:
             PersonConfig(label="Blocked", a_number="A-123456789", country="CHILE"),
             PersonConfig(label="OK", a_number="A-987654321", country="MEXICO"),
         ]
-        summaries = execute_batch(
-            config, people, inter_person_delay=0, verbose_console=False
-        )
+        summaries = execute_batch(config, people, inter_person_delay=0, verbose_console=False)
         # First person skipped due to bot challenge; second succeeds
         assert len(summaries) == 1
         assert summaries[0].person_label == "OK"
@@ -325,8 +319,6 @@ class TestExecuteBatch:
         # Note: PersonConfig.validate() is called in load_people, but
         # _apply_person_overrides + config.validate() is called in execute_batch.
         # The bad a_number will fail config validation.
-        summaries = execute_batch(
-            config, people, inter_person_delay=0, verbose_console=False
-        )
+        summaries = execute_batch(config, people, inter_person_delay=0, verbose_console=False)
         # Bad person skipped, Good person runs
         assert len(summaries) >= 1

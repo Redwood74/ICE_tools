@@ -18,6 +18,8 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["AppConfig", "load_config"]
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -187,6 +189,24 @@ def load_config(
         "yes",
     )
 
+    def _safe_int(key: str, default: str) -> int:
+        raw = _get_value(key) or default
+        try:
+            return int(raw)
+        except ValueError as err:
+            from findICE.exceptions import ConfigError
+
+            raise ConfigError(f"{key} must be an integer (got {raw!r})") from err
+
+    def _safe_float(key: str, default: str) -> float:
+        raw = _get_value(key) or default
+        try:
+            return float(raw)
+        except ValueError as err:
+            from findICE.exceptions import ConfigError
+
+            raise ConfigError(f"{key} must be a number (got {raw!r})") from err
+
     cfg = AppConfig(
         a_number=(
             override_a_number
@@ -201,10 +221,10 @@ def load_config(
         attempts_per_run=(
             override_attempts
             if override_attempts is not None
-            else int(_get_value("ATTEMPTS_PER_RUN") or "4")
+            else _safe_int("ATTEMPTS_PER_RUN", "4")
         ),
-        attempt_delay_seconds=float(_get_value("ATTEMPT_DELAY_SECONDS") or "5.0"),
-        attempt_jitter_seconds=float(_get_value("ATTEMPT_JITTER_SECONDS") or "2.0"),
+        attempt_delay_seconds=_safe_float("ATTEMPT_DELAY_SECONDS", "5.0"),
+        attempt_jitter_seconds=_safe_float("ATTEMPT_JITTER_SECONDS", "2.0"),
         headless=(
             override_headless
             if override_headless is not None
@@ -212,8 +232,8 @@ def load_config(
             # Only explicit "false", "0", or "no" values disable headless mode.
             else _get_value("HEADLESS", use_keyring).lower() not in ("0", "false", "no")
         ),
-        page_load_timeout_ms=int(_get_value("PAGE_LOAD_TIMEOUT_MS") or "30000"),
-        element_timeout_ms=int(_get_value("ELEMENT_TIMEOUT_MS") or "15000"),
+        page_load_timeout_ms=_safe_int("PAGE_LOAD_TIMEOUT_MS", "30000"),
+        element_timeout_ms=_safe_int("ELEMENT_TIMEOUT_MS", "15000"),
         teams_webhook_url=_get_value("TEAMS_WEBHOOK_URL", use_keyring),
         dry_run=(
             override_dry_run
@@ -228,12 +248,8 @@ def load_config(
         people_file=(
             Path(_get_value("PEOPLE_FILE")) if _get_value("PEOPLE_FILE") else None
         ),
-        inter_person_delay_seconds=float(
-            _get_value("INTER_PERSON_DELAY_SECONDS") or "10.0"
-        ),
-        timeline_retention_hours=float(
-            _get_value("TIMELINE_RETENTION_HOURS") or "24.0"
-        ),
+        inter_person_delay_seconds=_safe_float("INTER_PERSON_DELAY_SECONDS", "10.0"),
+        timeline_retention_hours=_safe_float("TIMELINE_RETENTION_HOURS", "24.0"),
     )
 
     return cfg

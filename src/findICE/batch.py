@@ -28,6 +28,8 @@ from findICE.exceptions import ConfigError
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["PersonConfig", "load_people", "execute_batch"]
+
 # Safe subset of characters for directory names
 _LABEL_RE = re.compile(r"[^a-zA-Z0-9_\- ]")
 
@@ -61,8 +63,7 @@ class PersonConfig:
         a_digits = re.sub(r"\D", "", self.a_number)
         if not a_digits or len(a_digits) not in (8, 9):
             errors.append(
-                f"A_NUMBER must be 8–9 digits for '{self.label}' "
-                f"(got '{self.a_number}')"
+                f"A_NUMBER must be 8–9 digits for '{self.label}' (got '{self.a_number}')"
             )
 
         if not self.country.strip():
@@ -91,8 +92,7 @@ def load_people(path: Path) -> list[PersonConfig]:
         import yaml  # type: ignore[import-untyped]
     except ImportError:
         raise ConfigError(
-            "PyYAML is required for multi-person mode. Install with: "
-            "pip install pyyaml"
+            "PyYAML is required for multi-person mode. Install with: pip install pyyaml"
         ) from None
 
     try:

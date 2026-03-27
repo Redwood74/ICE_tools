@@ -156,9 +156,7 @@ def execute_run(
                     summary.notified = True
                     logger.info("Notification sent and hash recorded")
                 else:
-                    logger.info(
-                        "Notification path is dry-run/no-webhook; hash not recorded"
-                    )
+                    logger.info("Notification path is dry-run/no-webhook; hash not recorded")
             else:
                 logger.warning("One or more notifiers failed")
         else:
@@ -177,9 +175,7 @@ def execute_run(
         logger.info("ZERO_RESULT across all attempts – no notification sent")
 
     elif summary.best_state == ResultState.ERROR:
-        logger.warning(
-            "All attempts resulted in ERROR – check artifacts at %s", run_dir
-        )
+        logger.warning("All attempts resulted in ERROR – check artifacts at %s", run_dir)
 
     _persist()
 

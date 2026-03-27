@@ -31,7 +31,9 @@ jobs:
           pip install -e .
 
       - name: Lint (ruff)
-        run: ruff check src/ tests/
+        run: |
+          ruff check src/ tests/
+          ruff format --check src/ tests/
 
       - name: Run tests (no live ICE queries)
         run: pytest -m "not live" --tb=short

@@ -79,9 +79,7 @@ class TestBuildNotifier:
         assert isinstance(notifiers[0], NoOpNotifier)
 
     def test_dry_run_returns_noop(self):
-        notifiers = build_notifier(
-            webhook_url="https://example.com/webhook", dry_run=True
-        )
+        notifiers = build_notifier(webhook_url="https://example.com/webhook", dry_run=True)
         assert isinstance(notifiers[0], NoOpNotifier)
 
     def test_verbose_console_adds_console_notifier(self):
@@ -149,15 +147,11 @@ class TestValidateWebhookUrl:
         TeamsNotifier._validate_webhook_url("https://outlook.office.com/webhook/abc123")
 
     def test_valid_logic_azure_url(self):
-        TeamsNotifier._validate_webhook_url(
-            "https://prod-01.logic.azure.com/workflows/abc"
-        )
+        TeamsNotifier._validate_webhook_url("https://prod-01.logic.azure.com/workflows/abc")
 
     def test_rejects_http(self):
         with pytest.raises(ValueError, match="HTTPS"):
-            TeamsNotifier._validate_webhook_url(
-                "http://outlook.office.com/webhook/test"
-            )
+            TeamsNotifier._validate_webhook_url("http://outlook.office.com/webhook/test")
 
     def test_rejects_untrusted_domain(self):
         with pytest.raises(ValueError, match="not a trusted"):

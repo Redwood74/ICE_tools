@@ -173,30 +173,34 @@ class TestCmdPrintConfig:
 
 
 class TestCmdClassifySample:
-    def test_list_option(self, capsys):
-        args = argparse.Namespace(sample=None, list=True)
-        rc = cmd_classify_sample(args)
-        assert rc == 0
-        out = capsys.readouterr().out
-        assert "zero" in out
+    def test_list_option(self, caplog):
+        import logging
 
-    def test_unknown_sample(self, capsys):
+        with caplog.at_level(logging.INFO, logger="findICE.cli"):
+            args = argparse.Namespace(sample=None, list=True)
+            rc = cmd_classify_sample(args)
+        assert rc == 0
+        assert "zero" in caplog.text.lower()
+
+    def test_unknown_sample(self):
         args = argparse.Namespace(sample="nonexistent", list=False)
         rc = cmd_classify_sample(args)
         assert rc == 1
 
-    def test_no_sample_given(self, capsys):
+    def test_no_sample_given(self):
         args = argparse.Namespace(sample=None, list=False)
         rc = cmd_classify_sample(args)
         assert rc == 1
 
-    def test_classifies_zero_fixture(self, capsys):
+    def test_classifies_zero_fixture(self, caplog):
         """Classify the 'zero' fixture using real fixture files."""
-        args = argparse.Namespace(sample="zero", list=False)
-        rc = cmd_classify_sample(args)
+        import logging
+
+        with caplog.at_level(logging.INFO, logger="findICE.cli"):
+            args = argparse.Namespace(sample="zero", list=False)
+            rc = cmd_classify_sample(args)
         assert rc == 0
-        out = capsys.readouterr().out
-        assert "ZERO_RESULT" in out
+        assert "ZERO_RESULT" in caplog.text
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +209,9 @@ class TestCmdClassifySample:
 
 
 class TestCmdVerifyWebhook:
-    def test_no_webhook_returns_1(self, monkeypatch, capsys):
+    def test_no_webhook_returns_1(self, monkeypatch, caplog):
+        import logging
+
         def fake_load_config(**kwargs):
             return AppConfig(
                 a_number="123456789",
@@ -214,10 +220,11 @@ class TestCmdVerifyWebhook:
             )
 
         monkeypatch.setattr("findICE.config.load_config", fake_load_config)
-        args = argparse.Namespace()
-        rc = cmd_verify_webhook(args)
+        with caplog.at_level(logging.ERROR, logger="findICE.cli"):
+            args = argparse.Namespace()
+            rc = cmd_verify_webhook(args)
         assert rc == 1
-        assert "not configured" in capsys.readouterr().err
+        assert "not configured" in caplog.text.lower()
 
 
 # ---------------------------------------------------------------------------

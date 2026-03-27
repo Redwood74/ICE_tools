@@ -99,9 +99,7 @@ class TestFacilityTabHelpers:
         assert detail["slug"] == "contacting_a_detainee"
         assert detail["phones"] == ["1-833-4ICE-OPR", "(318) 668-5900"]
         assert detail["emails"] == ["slipcnotify@geogroup.com"]
-        assert detail["links"] == [
-            {"text": "Facility Page", "url": "https://example.com/facility"}
-        ]
+        assert detail["links"] == [{"text": "Facility Page", "url": "https://example.com/facility"}]
 
 
 # ---------------------------------------------------------------------------

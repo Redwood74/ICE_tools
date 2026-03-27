@@ -58,9 +58,7 @@ def redact_text(text: str, a_number: str | None = None) -> str:
         digits_only = re.sub(r"\D", "", a_number)
         if digits_only:
             text = text.replace(a_number, mask_a_number(a_number))
-            text = text.replace(
-                digits_only, ("*" * (len(digits_only) - 2)) + digits_only[-2:]
-            )
+            text = text.replace(digits_only, ("*" * (len(digits_only) - 2)) + digits_only[-2:])
     return mask_a_number(text)
 
 

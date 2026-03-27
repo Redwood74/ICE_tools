@@ -38,9 +38,7 @@ class TestExecuteRunNotificationState:
         cfg = _base_config(tmp_path)
         cfg.dry_run = True
 
-        monkeypatch.setattr(
-            "findICE.main.run_with_retries", lambda **kwargs: [_positive_result()]
-        )
+        monkeypatch.setattr("findICE.main.run_with_retries", lambda **kwargs: [_positive_result()])
         monkeypatch.setattr(
             "findICE.main.build_notifier",
             lambda **kwargs: [_AlwaysOkNotifier()],
@@ -58,9 +56,7 @@ class TestExecuteRunNotificationState:
         cfg.dry_run = False
         cfg.teams_webhook_url = "https://example.com/webhook"
 
-        monkeypatch.setattr(
-            "findICE.main.run_with_retries", lambda **kwargs: [_positive_result()]
-        )
+        monkeypatch.setattr("findICE.main.run_with_retries", lambda **kwargs: [_positive_result()])
         monkeypatch.setattr(
             "findICE.main.build_notifier",
             lambda **kwargs: [_AlwaysOkNotifier()],

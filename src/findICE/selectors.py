@@ -256,12 +256,8 @@ def log_selector_health() -> dict[str, dict]:
         logger.debug("No selector health data recorded (no selectors resolved)")
         return {}
 
-    heuristic_used = [
-        name for name, info in _selector_health.items() if info.get("is_heuristic")
-    ]
-    failed = [
-        name for name, info in _selector_health.items() if info.get("index") == -1
-    ]
+    heuristic_used = [name for name, info in _selector_health.items() if info.get("is_heuristic")]
+    failed = [name for name, info in _selector_health.items() if info.get("index") == -1]
 
     if heuristic_used:
         logger.warning(

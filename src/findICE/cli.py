@@ -20,6 +20,8 @@ from findICE import __version__
 from findICE.exceptions import BotChallengeError
 from findICE.logging_utils import configure_logging
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Argument parser
 # ---------------------------------------------------------------------------
@@ -203,18 +205,18 @@ def cmd_check_once(args: argparse.Namespace) -> int:
     try:
         cfg.validate()
     except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        logger.error("Configuration error: %s", exc)
         return 1
 
     try:
         summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
     except BotChallengeError:
-        print("Bot challenge detected – see artifacts for details.", file=sys.stderr)
+        logger.error("Bot challenge detected \u2013 see artifacts for details.")
         return BotChallengeError.EXIT_CODE
     facility = ""
     if summary.best_result and summary.best_result.detention_facility:
         facility = f" detention_facility={summary.best_result.detention_facility}"
-    print(f"Run complete: best_state={summary.best_state.value}{facility}")
+    logger.info("Run complete: best_state=%s%s", summary.best_state.value, facility)
     return 0
 
 
@@ -237,19 +239,22 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
         try:
             cfg.validate()
         except Exception as exc:
-            print(f"ERROR: {exc}", file=sys.stderr)
+            logger.error("Configuration error: %s", exc)
             return 1
 
-        print(
-            "Running live smoke test with .env config "
-            f"(attempts={cfg.attempts_per_run}, headless={cfg.headless}, dry_run=True)"
+        logger.info(
+            "Running live smoke test with .env config (attempts=%d, headless=%s, dry_run=True)",
+            cfg.attempts_per_run,
+            cfg.headless,
         )
         summary = execute_run(cfg, verbose_console=False)
         facility = ""
         if summary.best_result and summary.best_result.detention_facility:
             facility = f" detention_facility={summary.best_result.detention_facility}"
-        print(
-            f"Live smoke test complete: best_state={summary.best_state.value}{facility}"
+        logger.info(
+            "Live smoke test complete: best_state=%s%s",
+            summary.best_state.value,
+            facility,
         )
         if summary.best_state == ResultState.ERROR:
             return 1
@@ -274,35 +279,34 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
 
     txt_files = sorted(fixture_dir.glob("*.txt"))
     if not txt_files:
-        print(f"No fixture .txt files found in {fixture_dir}", file=sys.stderr)
+        logger.error("No fixture .txt files found in %s", fixture_dir)
         return 1
 
-    print(f"Running smoke test on {len(txt_files)} fixtures in {fixture_dir}")
+    logger.info("Running smoke test on %d fixtures in %s", len(txt_files), fixture_dir)
     all_passed = True
     for fpath in txt_files:
         text = fpath.read_text(encoding="utf-8")
         state = classify_page_text(text)
         expected = expected_states.get(fpath.stem)
         if expected is None:
-            print(f"  {fpath.name:40s}  ->  {state.value} (no expectation)")
+            logger.info("  %s  ->  %s (no expectation)", fpath.name, state.value)
             continue
         if state == expected:
-            print(f"  {fpath.name:40s}  ->  PASS ({state.value})")
+            logger.info("  %s  ->  PASS (%s)", fpath.name, state.value)
         else:
             all_passed = False
-            print(
-                f"  {fpath.name:40s}  ->  FAIL "
-                f"(expected={expected.value}, got={state.value})"
+            logger.error(
+                "  %s  ->  FAIL (expected=%s, got=%s)",
+                fpath.name,
+                expected.value,
+                state.value,
             )
 
     if all_passed:
-        print("Smoke test complete: all fixture expectations passed.")
+        logger.info("Smoke test complete: all fixture expectations passed.")
         return 0
 
-    print(
-        "Smoke test failed: one or more fixtures did not match expectations.",
-        file=sys.stderr,
-    )
+    logger.error("Smoke test failed: one or more fixtures did not match expectations.")
     return 1
 
 
@@ -340,7 +344,7 @@ def cmd_verify_webhook(args: argparse.Namespace) -> int:
     cfg = load_config()
 
     if not cfg.has_webhook:
-        print("TEAMS_WEBHOOK_URL is not configured.", file=sys.stderr)
+        logger.error("TEAMS_WEBHOOK_URL is not configured.")
         return 1
 
     payload = NotificationPayload(
@@ -357,10 +361,10 @@ def cmd_verify_webhook(args: argparse.Namespace) -> int:
     notifier = TeamsNotifier(cfg.teams_webhook_url)
     ok = notifier.send(payload)
     if ok:
-        print("Webhook test message sent successfully.")
+        logger.info("Webhook test message sent successfully.")
         return 0
     else:
-        print("Webhook test FAILED. Check logs for details.", file=sys.stderr)
+        logger.error("Webhook test FAILED. Check logs for details.")
         return 1
 
 
@@ -383,32 +387,29 @@ def cmd_classify_sample(args: argparse.Namespace) -> int:
     }
 
     if getattr(args, "list", False):
-        print("Available fixture names:")
+        logger.info("Available fixture names:")
         for k in sorted(name_map.keys()):
-            print(f"  {k}")
+            logger.info("  %s", k)
         return 0
 
     if not args.sample:
-        print("Provide a sample name. Use --list to see options.", file=sys.stderr)
+        logger.error("Provide a sample name. Use --list to see options.")
         return 1
 
     key = args.sample.lower().strip()
     stem = name_map.get(key)
     if not stem:
-        print(
-            f"Unknown sample '{args.sample}'. Use --list to see options.",
-            file=sys.stderr,
-        )
+        logger.error("Unknown sample '%s'. Use --list to see options.", args.sample)
         return 1
 
     fpath = fixture_dir / f"{stem}.txt"
     if not fpath.exists():
-        print(f"Fixture file not found: {fpath}", file=sys.stderr)
+        logger.error("Fixture file not found: %s", fpath)
         return 1
 
     text = fpath.read_text(encoding="utf-8")
     state = classify_page_text(text)
-    print(f"Sample '{args.sample}' classified as: {state.value}")
+    logger.info("Sample '%s' classified as: %s", args.sample, state.value)
     return 0
 
 
@@ -430,16 +431,15 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
 
     people_path = Path(args.people) if args.people else cfg.people_file
     if not people_path:
-        print(
-            "ERROR: No people file specified. Use --people or set PEOPLE_FILE env var.",
-            file=sys.stderr,
+        logger.error(
+            "No people file specified. Use --people or set PEOPLE_FILE env var."
         )
         return 1
 
     try:
         people = load_people(people_path)
     except Exception as exc:
-        print(f"ERROR loading people file: {exc}", file=sys.stderr)
+        logger.error("Error loading people file: %s", exc)
         return 1
 
     inter_delay = (
@@ -448,7 +448,7 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
         else cfg.inter_person_delay_seconds
     )
 
-    print(f"Batch run: {len(people)} people from {people_path}")
+    logger.info("Batch run: %d people from %s", len(people), people_path)
     summaries = execute_batch(
         config=cfg,
         people=people,
@@ -456,16 +456,14 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
         verbose_console=getattr(args, "verbose", False),
     )
 
-    # Print summary table
-    print(f"\n{'='*60}")
-    print(f"Batch complete: {len(summaries)} of {len(people)} runs finished")
-    print(f"{'='*60}")
+    # Summary table
+    logger.info("Batch complete: %d of %d runs finished", len(summaries), len(people))
     for s in summaries:
         label = s.person_label or "unknown"
         facility = ""
         if s.best_result and s.best_result.detention_facility:
             facility = f" facility={s.best_result.detention_facility}"
-        print(f"  {label:20s}  {s.best_state.value}{facility}")
+        logger.info("  %-20s  %s%s", label, s.best_state.value, facility)
 
     errors = [s for s in summaries if s.best_state.value == "ERROR"]
     if errors:
