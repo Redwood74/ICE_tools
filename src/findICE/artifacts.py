@@ -295,7 +295,7 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
     if screenshots:
         imgs = "\n".join(
             f'<div style="margin-bottom:16px">'
-            f'<h3>{_html_escape(label)}</h3>'
+            f"<h3>{_html_escape(label)}</h3>"
             f'<img src="data:image/png;base64,{data}" '
             f'style="max-width:100%;border:1px solid #ccc;border-radius:4px" />'
             f"</div>"
@@ -313,7 +313,9 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
             f"{s.value}</span>"
             for s in summary.all_states
         )
-        states_html = f'<p style="margin-top:8px"><strong>All attempts:</strong> {badges}</p>'
+        states_html = (
+            f'<p style="margin-top:8px"><strong>All attempts:</strong> {badges}</p>'
+        )
 
     started = summary.started_at.strftime("%Y-%m-%d %H:%M:%S UTC")
     completed = (

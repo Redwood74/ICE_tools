@@ -486,7 +486,9 @@ def cmd_setup(args: argparse.Namespace) -> int:
     else:
         print("No .env file found — creating a new one.\n")
 
-    def _prompt(label: str, key: str, *, required: bool = False, hide: bool = False) -> str:
+    def _prompt(
+        label: str, key: str, *, required: bool = False, hide: bool = False
+    ) -> str:
         default = existing.get(key, "")
         display_default = "(configured)" if hide and default else default
         suffix = f" [{display_default}]" if display_default else ""
@@ -504,7 +506,9 @@ def cmd_setup(args: argparse.Namespace) -> int:
     print("=" * 50)
 
     print("\n── Required ──")
-    a_number = _prompt("Alien registration number (A-XXXXXXXXX)", "A_NUMBER", required=True)
+    a_number = _prompt(
+        "Alien registration number (A-XXXXXXXXX)", "A_NUMBER", required=True
+    )
     country = _prompt("Country of origin (e.g. MEXICO)", "COUNTRY", required=True)
 
     print("\n── Notifications ──")
@@ -512,7 +516,9 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
     print("\n── Run behavior (press Enter for defaults) ──")
     attempts = _prompt("Attempts per run", "ATTEMPTS_PER_RUN") or "4"
-    delay = _prompt("Delay between attempts (seconds)", "ATTEMPT_DELAY_SECONDS") or "5.0"
+    delay = (
+        _prompt("Delay between attempts (seconds)", "ATTEMPT_DELAY_SECONDS") or "5.0"
+    )
     jitter = _prompt("Random jitter (seconds)", "ATTEMPT_JITTER_SECONDS") or "2.0"
     headless = _prompt("Headless mode (true/false)", "HEADLESS") or "true"
     dry_run = _prompt("Dry run (true/false)", "DRY_RUN") or "false"

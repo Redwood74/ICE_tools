@@ -44,7 +44,9 @@ _RESULT_READY_SIGNALS = [
 
 _PHONE_PATTERNS = [
     re.compile(r"\b1-\d{3}-[A-Z0-9-]{4,}\b"),
-    re.compile(r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{4}(?!\d)"),
+    re.compile(
+        r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{4}(?!\d)"
+    ),
 ]
 _EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 
@@ -122,7 +124,11 @@ def _build_facility_tab_detail(
         cleaned_links.append(link)
 
     phones = _dedupe_preserve_order(
-        [match.group(0) for pattern in _PHONE_PATTERNS for match in pattern.finditer(text)]
+        [
+            match.group(0)
+            for pattern in _PHONE_PATTERNS
+            for match in pattern.finditer(text)
+        ]
     )
     emails = _dedupe_preserve_order(_EMAIL_PATTERN.findall(text))
 
@@ -366,7 +372,9 @@ def _collect_facility_more_information(page, result: SearchResult) -> object | N
     return info_page
 
 
-def _collect_facility_details(page, result: SearchResult, timeout_ms: int) -> object | None:
+def _collect_facility_details(
+    page, result: SearchResult, timeout_ms: int
+) -> object | None:
     """Follow the facility link and collect the detail page when available."""
     facility_loc = resolve_locator(page, DETENTION_FACILITY_LINK)
     if facility_loc is None:
@@ -473,7 +481,9 @@ def run_single_attempt(
 
         # Navigate to the ICE locator
         logger.debug("Attempt %d: navigating to %s", attempt_number, ICE_LOCATOR_URL)
-        page.goto(ICE_LOCATOR_URL, wait_until="domcontentloaded", timeout=page_load_timeout_ms)
+        page.goto(
+            ICE_LOCATOR_URL, wait_until="domcontentloaded", timeout=page_load_timeout_ms
+        )
         result.page_title = page.title()
         logger.debug("Attempt %d: page title = '%s'", attempt_number, result.page_title)
 
