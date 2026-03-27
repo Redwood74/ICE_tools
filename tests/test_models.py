@@ -57,7 +57,7 @@ class TestRunSummary:
             facility_address="123 Main St",
             visitor_information="(555) 000-1111",
             ero_office_name="Salt Lake City",
-            ero_office_phone="(801) 736-1200",
+            ero_office_phone="(555) 736-1200",
             detail_page_url="https://example.com/details",
             facility_more_information_url="https://example.com/facility",
         )
@@ -72,4 +72,4 @@ class TestRunSummary:
         data = summary.to_dict()
         assert data["detention_facility"] == "Facility A"
         assert data["facility_address"] == "123 Main St"
-        assert data["ero_office_phone"] == "(801) 736-1200"
+        assert data["ero_office_phone"] == "(555) 736-1200"
