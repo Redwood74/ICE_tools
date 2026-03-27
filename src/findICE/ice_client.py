@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,7 @@ from findICE.models import ResultState, SearchResult
 from findICE.selectors import (
     A_NUMBER_INPUT,
     COUNTRY_SELECT,
+    DETENTION_FACILITY_LINK,
     ELEMENT_TIMEOUT_MS,
     ICE_LOCATOR_URL,
     PAGE_LOAD_TIMEOUT_MS,
@@ -39,6 +41,36 @@ _RESULT_READY_SIGNALS = [
 ]
 
 
+def _select_country_option(country_sel, country: str, timeout_ms: int) -> None:
+    """Select country by value/label with case-tolerant fallback."""
+    for kwargs in (
+        {"value": country},
+        {"label": country},
+        {"label": country.upper()},
+        {"label": country.title()},
+    ):
+        try:
+            country_sel.select_option(**kwargs, timeout=timeout_ms)
+            return
+        except Exception:
+            continue
+
+    option_locs = country_sel.locator("option")
+    option_count = option_locs.count()
+    for idx in range(option_count):
+        label = option_locs.nth(idx).inner_text().strip()
+        if label.lower() == country.strip().lower():
+            country_sel.select_option(label=label, timeout=timeout_ms)
+            return
+
+    raise RuntimeError(f"Could not select country '{country}'")
+
+
+def _normalise_a_number_for_form(a_number: str) -> str:
+    """Return digits-only A-number expected by the locator input control."""
+    return re.sub(r"\D", "", a_number)
+
+
 def _extract_page_text(page) -> str:
     """Extract visible text from the result container, falling back to full body."""
     result_loc = resolve_locator(page, RESULT_CONTAINER)
@@ -55,18 +87,127 @@ def _extract_page_text(page) -> str:
         return ""
 
 
+def _extract_detention_facility(page) -> str | None:
+    """Return the current detention facility shown on the results page."""
+    facility_loc = resolve_locator(page, DETENTION_FACILITY_LINK)
+    if facility_loc is None:
+        return None
+    try:
+        text = facility_loc.inner_text(timeout=5_000).strip()
+        return text or None
+    except Exception:
+        return None
+
+
+def _extract_detail_page_data(page) -> dict[str, str]:
+    """Extract structured fields from the facility detail page."""
+    data = page.evaluate(
+        """() => {
+            const root = document.querySelector('app-detention-facility')
+                || document.querySelector('#detentionPage');
+            if (!root) {
+                return {};
+            }
+
+            const clean = (value) => (value || '').replace(/\\s+/g, ' ').trim();
+            const detentionPage = root.querySelector('#detentionPage') || root;
+            const facilityInfo = detentionPage.querySelector('.facility-info.info');
+            const eroBlock = Array.from(root.querySelectorAll('.facility-info'))
+                .find((el) => clean(el.innerText).toLowerCase().includes('phone number'));
+
+            const facilityDivs = facilityInfo
+                ? Array.from(facilityInfo.children).filter((el) => el.tagName === 'DIV')
+                : [];
+            const facilityName = facilityDivs.length > 0 ? clean(facilityDivs[0].innerText) : '';
+            const addressContainer = facilityDivs.length > 1 ? facilityDivs[1] : null;
+            const addressLines = addressContainer
+                ? Array.from(addressContainer.querySelectorAll(':scope > div'))
+                    .map((el) => clean(el.innerText))
+                    .filter(Boolean)
+                : [];
+
+            const visitorNode = facilityInfo
+                ? Array.from(facilityInfo.querySelectorAll('p'))
+                    .find((el) => clean(el.innerText).toLowerCase().includes('visitor information'))
+                : null;
+
+            const eroOfficeNode = eroBlock
+                ? Array.from(eroBlock.querySelectorAll('div'))
+                    .find((el) => {
+                        const text = clean(el.innerText);
+                        return text && !text.toLowerCase().startsWith('phone number:');
+                    })
+                : null;
+            const eroPhoneNode = eroBlock
+                ? Array.from(eroBlock.querySelectorAll('div'))
+                    .find((el) => clean(el.innerText).toLowerCase().startsWith('phone number:'))
+                : null;
+
+            const moreInfoLink = document.querySelector('#facility-info')
+                ? document.querySelector('#facility-info').closest('a')
+                : null;
+
+            return {
+                detail_page_text: clean(root.innerText),
+                detail_page_title: clean(document.title),
+                detail_page_url: clean(window.location.href),
+                detention_facility: facilityName,
+                facility_address: addressLines.join(', '),
+                visitor_information: visitorNode
+                    ? clean(visitorNode.innerText).replace(/^Visitor Information:\\s*/i, '')
+                    : '',
+                ero_office_name: eroOfficeNode ? clean(eroOfficeNode.innerText) : '',
+                ero_office_phone: eroPhoneNode
+                    ? clean(eroPhoneNode.innerText).replace(/^Phone Number:\\s*/i, '')
+                    : '',
+                facility_more_information_url: moreInfoLink ? clean(moreInfoLink.href) : '',
+            };
+        }"""
+    )
+    return {key: value for key, value in data.items() if value}
+
+
+def _apply_detail_page_data(result: SearchResult, data: dict[str, str]) -> None:
+    """Apply extracted detail-page data to the search result in-place."""
+    for key, value in data.items():
+        setattr(result, key, value)
+
+
+def _collect_facility_details(page, result: SearchResult, timeout_ms: int) -> None:
+    """Follow the facility link and collect the detail page when available."""
+    facility_loc = resolve_locator(page, DETENTION_FACILITY_LINK)
+    if facility_loc is None:
+        return
+
+    try:
+        facility_loc.click(timeout=timeout_ms)
+        page.wait_for_function(
+            """() => window.location.hash.includes('/details') || !!document.querySelector('#detentionPage')""",
+            timeout=timeout_ms,
+        )
+        page.wait_for_timeout(1_000)
+        detail_data = _extract_detail_page_data(page)
+        _apply_detail_page_data(result, detail_data)
+    except Exception as exc:
+        logger.warning("Could not collect facility detail page: %s", exc)
+
+
 def _wait_for_result(page, timeout_ms: int = SEARCH_RESULT_TIMEOUT_MS) -> None:
     """Wait until the page shows a recognisable result signal."""
     try:
         page.wait_for_function(
             """() => {
                 const body = document.body.innerText.toLowerCase();
+                const hash = window.location.hash.toLowerCase();
                 return (
-                    body.includes('search results') ||
+                    document.querySelector('#resultsPage') ||
+                    document.querySelector('#detentionPage') ||
+                    hash.includes('/results') ||
+                    hash.includes('/details') ||
+                    body.includes('search results:') ||
                     body.includes('no records') ||
-                    body.includes('facility') ||
-                    body.includes('detainee') ||
-                    body.includes('0 results')
+                    body.includes('0 search results') ||
+                    body.includes('current detention facility')
                 );
             }""",
             timeout=timeout_ms,
@@ -102,7 +243,7 @@ def run_single_attempt(
     Returns:
         A SearchResult describing the outcome.
     """
-    from findICE.artifacts import save_attempt_artifacts
+    from findICE.artifacts import save_attempt_artifacts, save_detail_page_artifacts
     from findICE.logging_utils import mask_a_number
 
     masked = mask_a_number(a_number)
@@ -124,6 +265,7 @@ def run_single_attempt(
         attempt_number=attempt_number,
         timestamp=datetime.now(timezone.utc),
     )
+    page = None
 
     try:
         page = context.new_page()
@@ -143,23 +285,14 @@ def run_single_attempt(
         a_input = resolve_locator(page, A_NUMBER_INPUT)
         if a_input is None:
             raise RuntimeError("Could not locate A-number input field")
-        a_input.fill(a_number, timeout=element_timeout_ms)
+        a_input.fill(_normalise_a_number_for_form(a_number), timeout=element_timeout_ms)
         logger.debug("Attempt %d: filled A-number field", attempt_number)
 
         # --- Select country ---
         country_sel = resolve_locator(page, COUNTRY_SELECT)
         if country_sel is None:
             raise RuntimeError("Could not locate country select element")
-        # Try exact value first, then case-insensitive label
-        try:
-            country_sel.select_option(country, timeout=element_timeout_ms)
-        except Exception:
-            try:
-                country_sel.select_option(label=country, timeout=element_timeout_ms)
-            except Exception:
-                country_sel.select_option(
-                    label=country.upper(), timeout=element_timeout_ms
-                )
+        _select_country_option(country_sel, country, element_timeout_ms)
         logger.debug("Attempt %d: selected country '%s'", attempt_number, country)
 
         # --- Click search ---
@@ -175,6 +308,7 @@ def run_single_attempt(
         result.raw_text = page_text
         result.state = classify_page_text(page_text, page_title=page.title())
         result.page_title = page.title()
+        result.detention_facility = _extract_detention_facility(page)
 
         logger.info(
             "Attempt %d: classified as %s (text_len=%d)",
@@ -183,11 +317,23 @@ def run_single_attempt(
             len(page_text),
         )
 
-        # Save artifacts for this attempt
+        # Save the result page before following any facility link.
         if run_dir is not None:
             save_attempt_artifacts(
                 page, result, run_dir, save_screenshots=save_screenshots
             )
+
+        if result.detention_facility:
+            logger.info(
+                "Attempt %d: found detention facility '%s'",
+                attempt_number,
+                result.detention_facility,
+            )
+            _collect_facility_details(page, result, element_timeout_ms)
+            if result.detail_page_text and run_dir is not None:
+                save_detail_page_artifacts(
+                    page, result, run_dir, save_screenshots=save_screenshots
+                )
 
         if result.state == ResultState.BOT_CHALLENGE_OR_BLOCKED:
             raise BotChallengeError(
@@ -204,7 +350,10 @@ def run_single_attempt(
             # Try to save whatever we have
             try:
                 save_attempt_artifacts(
-                    None, result, run_dir, save_screenshots=False
+                    page,
+                    result,
+                    run_dir,
+                    save_screenshots=save_screenshots and page is not None,
                 )
             except Exception:
                 pass

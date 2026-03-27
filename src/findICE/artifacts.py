@@ -121,6 +121,44 @@ def save_attempt_artifacts(
     return result
 
 
+def save_detail_page_artifacts(
+    page: Page | None,
+    result: SearchResult,
+    run_dir: Path,
+    save_screenshots: bool = True,
+) -> SearchResult:
+    """Save detail-page artifacts when a facility page was collected."""
+    if not result.detail_page_text:
+        return result
+
+    state_tag = result.state.value.lower()
+    stem = f"attempt_{result.attempt_number:02d}_{state_tag}_detail"
+
+    if page is not None and save_screenshots:
+        screenshot_path = run_dir / f"{stem}.png"
+        try:
+            save_screenshot(page, screenshot_path)
+            result.detail_page_screenshot_path = str(screenshot_path)
+        except ArtifactError:
+            pass
+
+        html_path = run_dir / f"{stem}.html"
+        try:
+            save_html(page, html_path)
+            result.detail_page_html_path = str(html_path)
+        except ArtifactError:
+            pass
+
+    text_path = run_dir / f"{stem}.txt"
+    try:
+        save_text(result.detail_page_text, text_path)
+        result.detail_page_text_path = str(text_path)
+    except ArtifactError:
+        pass
+
+    return result
+
+
 def generate_run_id(prefix: str = "run") -> str:
     """Generate a sortable run identifier from the current UTC timestamp."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

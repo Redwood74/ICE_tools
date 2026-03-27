@@ -132,9 +132,14 @@ def execute_run(
             )
             success = all(n.send(payload) for n in notifiers)
             if success:
-                state_store.record_positive_sent(content_hash)
-                summary.notified = True
-                logger.info("Notification sent and hash recorded")
+                if config.has_webhook and not config.dry_run:
+                    state_store.record_positive_sent(content_hash)
+                    summary.notified = True
+                    logger.info("Notification sent and hash recorded")
+                else:
+                    logger.info(
+                        "Notification path is dry-run/no-webhook; hash not recorded"
+                    )
             else:
                 logger.warning("One or more notifiers failed")
         else:

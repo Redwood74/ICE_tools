@@ -175,9 +175,21 @@ def load_config(
     use_keyring = os.getenv("FINDICE_USE_KEYRING", "false").lower() in ("1", "true", "yes")
 
     cfg = AppConfig(
-        a_number=override_a_number or _get_value("A_NUMBER", use_keyring),
-        country=override_country or _get_value("COUNTRY", use_keyring),
-        attempts_per_run=override_attempts or int(_get_value("ATTEMPTS_PER_RUN") or "4"),
+        a_number=(
+            override_a_number
+            if override_a_number is not None
+            else _get_value("A_NUMBER", use_keyring)
+        ),
+        country=(
+            override_country
+            if override_country is not None
+            else _get_value("COUNTRY", use_keyring)
+        ),
+        attempts_per_run=(
+            override_attempts
+            if override_attempts is not None
+            else int(_get_value("ATTEMPTS_PER_RUN") or "4")
+        ),
         attempt_delay_seconds=float(_get_value("ATTEMPT_DELAY_SECONDS") or "5.0"),
         attempt_jitter_seconds=float(_get_value("ATTEMPT_JITTER_SECONDS") or "2.0"),
         headless=(

@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 # Selector definitions
 # ---------------------------------------------------------------------------
 
-ICE_LOCATOR_URL = "https://locator.ice.gov/odls/#/index"
+# As of March 2026, the working search form route is #/search.
+ICE_LOCATOR_URL = "https://locator.ice.gov/odls/#/search"
 
 # The page sometimes redirects or loads slowly; give it time.
 PAGE_LOAD_TIMEOUT_MS = 30_000
@@ -98,6 +99,8 @@ SEARCH_BUTTON = SelectorGroup(
 RESULT_CONTAINER = SelectorGroup(
     name="result_container",
     candidates=[
+        "#resultsPage",
+        "#detentionPage",
         "[aria-label*='result' i]",
         ".search-results",
         "#searchResults",
@@ -107,6 +110,15 @@ RESULT_CONTAINER = SelectorGroup(
         "table",
         "main",
         "body",
+    ],
+)
+
+DETENTION_FACILITY_LINK = SelectorGroup(
+    name="detention_facility_link",
+    candidates=[
+        "#resultsPage span.detention-link",
+        "span.detention-link",
+        ".detention-link",
     ],
 )
 

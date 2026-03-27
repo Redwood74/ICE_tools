@@ -104,3 +104,21 @@ class TestRedactingFilter:
         f = RedactingFilter(a_number="A-123456789")
         f.filter(record)
         assert "123456" not in str(record.args)
+
+    def test_filter_preserves_non_string_arg_types(self):
+        import logging
+
+        from findICE.logging_utils import RedactingFilter
+
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="attempt=%d",
+            args=(3,),
+            exc_info=None,
+        )
+        f = RedactingFilter(a_number="A-123456789")
+        f.filter(record)
+        assert isinstance(record.args[0], int)
