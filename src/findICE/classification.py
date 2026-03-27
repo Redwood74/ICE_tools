@@ -80,9 +80,7 @@ def classify_page_text(
     # --- Explicit ambiguous/problem page ---
     ambiguous_hits = _count_phrase_hits(lower, AMBIGUOUS_PAGE_PHRASES)
     if ambiguous_hits > 0:
-        logger.info(
-            "Classification: AMBIGUOUS_REVIEW (ambiguous_hits=%d)", ambiguous_hits
-        )
+        logger.info("Classification: AMBIGUOUS_REVIEW (ambiguous_hits=%d)", ambiguous_hits)
         return ResultState.AMBIGUOUS_REVIEW
 
     # --- Positive indicators ---
@@ -93,9 +91,7 @@ def classify_page_text(
 
     # --- Page appears loaded but content is unclear ---
     if len(raw_text.strip()) < MIN_VALID_TEXT_LENGTH:
-        logger.info(
-            "Classification: ERROR – page text too short (%d chars)", len(raw_text)
-        )
+        logger.info("Classification: ERROR – page text too short (%d chars)", len(raw_text))
         return ResultState.ERROR
 
     # --- Ambiguous: something is there but we can't classify it ---

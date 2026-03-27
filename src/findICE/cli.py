@@ -36,9 +36,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
 
@@ -48,23 +46,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Run a multi-attempt ICE locator check.",
         description="Runs N fresh browser attempts and notifies if a new positive is found.",
     )
-    p_check.add_argument(
-        "--a-number", metavar="ANUMBER", help="Alien registration number"
-    )
+    p_check.add_argument("--a-number", metavar="ANUMBER", help="Alien registration number")
     p_check.add_argument("--country", metavar="COUNTRY", help="Country of origin")
     p_check.add_argument("--attempts", type=int, metavar="N", help="Attempts per run")
-    p_check.add_argument(
-        "--headed", action="store_true", help="Run browser in headed mode"
-    )
-    p_check.add_argument(
-        "--dry-run", action="store_true", help="Skip Teams notification"
-    )
-    p_check.add_argument(
-        "--verbose", "-v", action="store_true", help="Print to console too"
-    )
-    p_check.add_argument(
-        "--log-level", default=None, metavar="LEVEL", help="DEBUG/INFO/WARNING"
-    )
+    p_check.add_argument("--headed", action="store_true", help="Run browser in headed mode")
+    p_check.add_argument("--dry-run", action="store_true", help="Skip Teams notification")
+    p_check.add_argument("--verbose", "-v", action="store_true", help="Print to console too")
+    p_check.add_argument("--log-level", default=None, metavar="LEVEL", help="DEBUG/INFO/WARNING")
 
     # --- smoke-test ---
     p_smoke = subparsers.add_parser(
@@ -127,9 +115,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Fixture name: zero | positive | ambiguous | blocked",
     )
-    p_classify.add_argument(
-        "--list", action="store_true", help="List all available fixture names"
-    )
+    p_classify.add_argument("--list", action="store_true", help="List all available fixture names")
 
     # --- check-batch ---
     p_batch = subparsers.add_parser(
@@ -145,27 +131,17 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="FILE",
         help="Path to people YAML file (default: env PEOPLE_FILE)",
     )
-    p_batch.add_argument(
-        "--headed", action="store_true", help="Run browser in headed mode"
-    )
-    p_batch.add_argument(
-        "--dry-run", action="store_true", help="Skip Teams notification"
-    )
-    p_batch.add_argument(
-        "--attempts", type=int, metavar="N", help="Override attempts per person"
-    )
+    p_batch.add_argument("--headed", action="store_true", help="Run browser in headed mode")
+    p_batch.add_argument("--dry-run", action="store_true", help="Skip Teams notification")
+    p_batch.add_argument("--attempts", type=int, metavar="N", help="Override attempts per person")
     p_batch.add_argument(
         "--inter-delay",
         type=float,
         metavar="SECONDS",
         help="Delay between people (default: env or 10s)",
     )
-    p_batch.add_argument(
-        "--verbose", "-v", action="store_true", help="Print to console too"
-    )
-    p_batch.add_argument(
-        "--log-level", default=None, metavar="LEVEL", help="DEBUG/INFO/WARNING"
-    )
+    p_batch.add_argument("--verbose", "-v", action="store_true", help="Print to console too")
+    p_batch.add_argument("--log-level", default=None, metavar="LEVEL", help="DEBUG/INFO/WARNING")
 
     # --- setup ---
     subparsers.add_parser(
@@ -197,9 +173,7 @@ def cmd_check_once(args: argparse.Namespace) -> int:
         override_dry_run=args.dry_run or None,
     )
 
-    log_level = getattr(
-        logging, (args.log_level or cfg.log_level).upper(), logging.DEBUG
-    )
+    log_level = getattr(logging, (args.log_level or cfg.log_level).upper(), logging.DEBUG)
     configure_logging(level=log_level, a_number=cfg.a_number, log_file=cfg.log_file)
 
     try:
@@ -323,9 +297,7 @@ def cmd_print_config(args: argparse.Namespace) -> int:
     print(f"  Jitter (s)         : {cfg.attempt_jitter_seconds}")
     print(f"  Headless           : {cfg.headless}")
     print(f"  Dry-run            : {cfg.dry_run}")
-    print(
-        f"  Teams webhook      : {'(configured)' if cfg.has_webhook else '(not set)'}"
-    )
+    print(f"  Teams webhook      : {'(configured)' if cfg.has_webhook else '(not set)'}")
     print(f"  Artifact dir       : {cfg.artifact_base_dir}")
     print(f"  State file         : {cfg.state_file}")
     print(f"  Log level          : {cfg.log_level}")
@@ -424,16 +396,12 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
         override_dry_run=args.dry_run or None,
     )
 
-    log_level = getattr(
-        logging, (args.log_level or cfg.log_level).upper(), logging.DEBUG
-    )
+    log_level = getattr(logging, (args.log_level or cfg.log_level).upper(), logging.DEBUG)
     configure_logging(level=log_level, a_number="BATCH", log_file=cfg.log_file)
 
     people_path = Path(args.people) if args.people else cfg.people_file
     if not people_path:
-        logger.error(
-            "No people file specified. Use --people or set PEOPLE_FILE env var."
-        )
+        logger.error("No people file specified. Use --people or set PEOPLE_FILE env var.")
         return 1
 
     try:
@@ -443,9 +411,7 @@ def cmd_check_batch(args: argparse.Namespace) -> int:
         return 1
 
     inter_delay = (
-        args.inter_delay
-        if args.inter_delay is not None
-        else cfg.inter_person_delay_seconds
+        args.inter_delay if args.inter_delay is not None else cfg.inter_person_delay_seconds
     )
 
     logger.info("Batch run: %d people from %s", len(people), people_path)
@@ -489,9 +455,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     else:
         print("No .env file found — creating a new one.\n")
 
-    def _prompt(
-        label: str, key: str, *, required: bool = False, hide: bool = False
-    ) -> str:
+    def _prompt(label: str, key: str, *, required: bool = False, hide: bool = False) -> str:
         default = existing.get(key, "")
         display_default = "(configured)" if hide and default else default
         suffix = f" [{display_default}]" if display_default else ""
@@ -509,9 +473,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     print("=" * 50)
 
     print("\n── Required ──")
-    a_number = _prompt(
-        "Alien registration number (A-XXXXXXXXX)", "A_NUMBER", required=True
-    )
+    a_number = _prompt("Alien registration number (A-XXXXXXXXX)", "A_NUMBER", required=True)
     country = _prompt("Country of origin (e.g. MEXICO)", "COUNTRY", required=True)
 
     print("\n── Notifications ──")
@@ -519,9 +481,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
     print("\n── Run behavior (press Enter for defaults) ──")
     attempts = _prompt("Attempts per run", "ATTEMPTS_PER_RUN") or "4"
-    delay = (
-        _prompt("Delay between attempts (seconds)", "ATTEMPT_DELAY_SECONDS") or "5.0"
-    )
+    delay = _prompt("Delay between attempts (seconds)", "ATTEMPT_DELAY_SECONDS") or "5.0"
     jitter = _prompt("Random jitter (seconds)", "ATTEMPT_JITTER_SECONDS") or "2.0"
     headless = _prompt("Headless mode (true/false)", "HEADLESS") or "true"
     dry_run = _prompt("Dry run (true/false)", "DRY_RUN") or "false"

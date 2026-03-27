@@ -334,15 +334,11 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
             f"{s.value}</span>"
             for s in summary.all_states
         )
-        states_html = (
-            f'<p style="margin-top:8px"><strong>All attempts:</strong> {badges}</p>'
-        )
+        states_html = f'<p style="margin-top:8px"><strong>All attempts:</strong> {badges}</p>'
 
     started = summary.started_at.strftime("%Y-%m-%d %H:%M:%S UTC")
     completed = (
-        summary.completed_at.strftime("%Y-%m-%d %H:%M:%S UTC")
-        if summary.completed_at
-        else "—"
+        summary.completed_at.strftime("%Y-%m-%d %H:%M:%S UTC") if summary.completed_at else "—"
     )
 
     html = f"""<!DOCTYPE html>
@@ -392,9 +388,7 @@ def generate_html_report(summary: RunSummary, run_dir: Path) -> Path | None:
         return None
 
 
-def _embed_screenshot(
-    screenshots: list[tuple[str, str]], path_str: str, label: str
-) -> None:
+def _embed_screenshot(screenshots: list[tuple[str, str]], path_str: str, label: str) -> None:
     """Read a screenshot file and append its base64 encoding."""
     import base64
 

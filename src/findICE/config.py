@@ -59,9 +59,7 @@ class AppConfig:
 
     # --- Artifact / state paths ---
     artifact_base_dir: Path = field(default_factory=lambda: Path("artifacts"))
-    state_file: Path = field(
-        default_factory=lambda: Path("state", "findice_state.json")
-    )
+    state_file: Path = field(default_factory=lambda: Path("state", "findice_state.json"))
 
     # --- Logging ---
     log_level: str = "DEBUG"
@@ -114,9 +112,7 @@ class AppConfig:
             errors.append("ATTEMPTS_PER_RUN must be >= 1")
 
         if errors:
-            raise ConfigError(
-                "Configuration invalid:\n" + "\n".join(f"  • {e}" for e in errors)
-            )
+            raise ConfigError("Configuration invalid:\n" + "\n".join(f"  • {e}" for e in errors))
 
     def log_summary(self) -> None:
         """Log a redacted summary of the active config."""
@@ -214,9 +210,7 @@ def load_config(
             else _get_value("A_NUMBER", use_keyring)
         ),
         country=(
-            override_country
-            if override_country is not None
-            else _get_value("COUNTRY", use_keyring)
+            override_country if override_country is not None else _get_value("COUNTRY", use_keyring)
         ),
         attempts_per_run=(
             override_attempts
@@ -245,9 +239,7 @@ def load_config(
         log_level=(_get_value("LOG_LEVEL") or "DEBUG").upper(),
         log_file=_get_value("LOG_FILE") or None,
         use_keyring=use_keyring,
-        people_file=(
-            Path(_get_value("PEOPLE_FILE")) if _get_value("PEOPLE_FILE") else None
-        ),
+        people_file=(Path(_get_value("PEOPLE_FILE")) if _get_value("PEOPLE_FILE") else None),
         inter_person_delay_seconds=_safe_float("INTER_PERSON_DELAY_SECONDS", "10.0"),
         timeline_retention_hours=_safe_float("TIMELINE_RETENTION_HOURS", "24.0"),
     )

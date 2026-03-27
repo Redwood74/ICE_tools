@@ -62,9 +62,7 @@ class PersonConfig:
 
         a_digits = re.sub(r"\D", "", self.a_number)
         if not a_digits or len(a_digits) not in (8, 9):
-            errors.append(
-                f"A_NUMBER must be 8–9 digits for '{self.label}' (got '{self.a_number}')"
-            )
+            errors.append(f"A_NUMBER must be 8–9 digits for '{self.label}' (got '{self.a_number}')")
 
         if not self.country.strip():
             errors.append(f"COUNTRY must be set for '{self.label}'")
@@ -103,16 +101,12 @@ def load_people(path: Path) -> list[PersonConfig]:
 
     people_list = data.get("people")
     if not isinstance(people_list, list) or not people_list:
-        raise ConfigError(
-            f"'{path}' must contain a 'people' list with at least one entry"
-        )
+        raise ConfigError(f"'{path}' must contain a 'people' list with at least one entry")
 
     # Validate entries are dicts before accessing attributes
     for entry in people_list:
         if not isinstance(entry, dict):
-            raise ConfigError(
-                f"Each item in 'people' must be a mapping, got: {entry!r}"
-            )
+            raise ConfigError(f"Each item in 'people' must be a mapping, got: {entry!r}")
 
     # Check for duplicate labels
     labels = [p.get("label", "") for p in people_list]

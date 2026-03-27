@@ -44,9 +44,7 @@ _RESULT_READY_SIGNALS = [
 
 _PHONE_PATTERNS = [
     re.compile(r"\b1-\d{3}-[A-Z0-9-]{4,}\b"),
-    re.compile(
-        r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{4}(?!\d)"
-    ),
+    re.compile(r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{4}(?!\d)"),
 ]
 _EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 
@@ -125,11 +123,7 @@ def _build_facility_tab_detail(
         cleaned_links.append(link)
 
     phones = _dedupe_preserve_order(
-        [
-            match.group(0)
-            for pattern in _PHONE_PATTERNS
-            for match in pattern.finditer(text)
-        ]
+        [match.group(0) for pattern in _PHONE_PATTERNS for match in pattern.finditer(text)]
     )
     emails = _dedupe_preserve_order(_EMAIL_PATTERN.findall(text))
 
@@ -328,9 +322,7 @@ def _extract_more_information_data(page) -> dict[str, object]:
                 r"\s+", " ", page.inner_text("main", timeout=5_000)
             ).strip()
         except Exception as exc:
-            logger.debug(
-                "More-info main inner_text failed, falling back to body: %s", exc
-            )
+            logger.debug("More-info main inner_text failed, falling back to body: %s", exc)
             facility_more_information_text = re.sub(
                 r"\s+", " ", page.inner_text("body", timeout=5_000)
             ).strip()
@@ -353,9 +345,7 @@ def _extract_more_information_data(page) -> dict[str, object]:
         "facility_sending_items_to_detainees": (
             str(tab_details.get("sending_items_to_detainees", {}).get("text", ""))
         ),
-        "facility_press_and_media": (
-            str(tab_details.get("press_and_media", {}).get("text", ""))
-        ),
+        "facility_press_and_media": (str(tab_details.get("press_and_media", {}).get("text", ""))),
         "facility_feedback_or_complaints": (
             str(tab_details.get("feedback_or_complaints", {}).get("text", ""))
         ),
@@ -395,9 +385,7 @@ def _collect_facility_more_information(page, result: SearchResult) -> object | N
     return info_page
 
 
-def _collect_facility_details(
-    page, result: SearchResult, timeout_ms: int
-) -> object | None:
+def _collect_facility_details(page, result: SearchResult, timeout_ms: int) -> object | None:
     """Follow the facility link and collect the detail page when available."""
     facility_loc = resolve_locator(page, DETENTION_FACILITY_LINK)
     if facility_loc is None:
@@ -504,9 +492,7 @@ def run_single_attempt(
 
         # Navigate to the ICE locator
         logger.debug("Attempt %d: navigating to %s", attempt_number, ICE_LOCATOR_URL)
-        page.goto(
-            ICE_LOCATOR_URL, wait_until="domcontentloaded", timeout=page_load_timeout_ms
-        )
+        page.goto(ICE_LOCATOR_URL, wait_until="domcontentloaded", timeout=page_load_timeout_ms)
         result.page_title = page.title()
         logger.debug("Attempt %d: page title = '%s'", attempt_number, result.page_title)
 
@@ -551,9 +537,7 @@ def run_single_attempt(
 
         # Save the result page before following any facility link.
         if run_dir is not None:
-            save_attempt_artifacts(
-                page, result, run_dir, save_screenshots=save_screenshots
-            )
+            save_attempt_artifacts(page, result, run_dir, save_screenshots=save_screenshots)
 
         if result.detention_facility:
             logger.info(
@@ -563,9 +547,7 @@ def run_single_attempt(
             )
             info_page = _collect_facility_details(page, result, element_timeout_ms)
             if result.detail_page_text and run_dir is not None:
-                save_detail_page_artifacts(
-                    page, result, run_dir, save_screenshots=save_screenshots
-                )
+                save_detail_page_artifacts(page, result, run_dir, save_screenshots=save_screenshots)
             if result.facility_more_information_text and run_dir is not None:
                 save_facility_more_information_artifacts(
                     info_page,
@@ -577,9 +559,7 @@ def run_single_attempt(
                 info_page.close()
 
         if result.state == ResultState.BOT_CHALLENGE_OR_BLOCKED:
-            raise BotChallengeError(
-                f"Attempt {attempt_number}: bot challenge or block detected"
-            )
+            raise BotChallengeError(f"Attempt {attempt_number}: bot challenge or block detected")
 
     except BotChallengeError:
         raise
@@ -656,15 +636,11 @@ def run_with_retries(
 
                 # Stop early on positive – we have what we need
                 if result.state == ResultState.LIKELY_POSITIVE:
-                    logger.info(
-                        "LIKELY_POSITIVE found on attempt %d – stopping early", i
-                    )
+                    logger.info("LIKELY_POSITIVE found on attempt %d – stopping early", i)
                     break
 
             except BotChallengeError as exc:
-                logger.error(
-                    "Bot challenge detected on attempt %d – aborting run: %s", i, exc
-                )
+                logger.error("Bot challenge detected on attempt %d – aborting run: %s", i, exc)
                 results.append(
                     SearchResult(
                         state=ResultState.BOT_CHALLENGE_OR_BLOCKED,

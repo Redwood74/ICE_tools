@@ -78,9 +78,7 @@ class TeamsNotifier:
             raise ValueError(f"Webhook URL must use HTTPS (got {parsed.scheme!r})")
         host = (parsed.hostname or "").lower()
         if not any(host.endswith(d) for d in cls._ALLOWED_DOMAINS):
-            raise ValueError(
-                f"Webhook URL domain {host!r} is not a trusted Microsoft endpoint"
-            )
+            raise ValueError(f"Webhook URL domain {host!r} is not a trusted Microsoft endpoint")
 
     def send(self, payload: NotificationPayload) -> bool:
         card = payload.to_teams_card()
@@ -100,9 +98,7 @@ class TeamsNotifier:
             if status == 200:
                 logger.info("Teams notification sent successfully (status=200)")
                 return True
-            logger.warning(
-                "Teams webhook returned unexpected status %d: %s", status, response_body
-            )
+            logger.warning("Teams webhook returned unexpected status %d: %s", status, response_body)
             return False
         except Exception as exc:
             logger.error("Teams notification failed: %s", exc)

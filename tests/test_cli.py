@@ -34,9 +34,7 @@ class TestSmokeTestFixtures:
     def test_fixture_mode_passes_when_expected_states_match(self, tmp_path):
         fixture_dir = tmp_path / "fixtures"
         fixture_dir.mkdir()
-        (fixture_dir / "zero_result.txt").write_text(
-            "0 search results", encoding="utf-8"
-        )
+        (fixture_dir / "zero_result.txt").write_text("0 search results", encoding="utf-8")
         (fixture_dir / "likely_positive.txt").write_text(
             (
                 "1 Search Result\n"
@@ -61,9 +59,7 @@ class TestSmokeTestFixtures:
     def test_fixture_mode_fails_when_expected_state_mismatches(self, tmp_path):
         fixture_dir = tmp_path / "fixtures"
         fixture_dir.mkdir()
-        (fixture_dir / "likely_positive.txt").write_text(
-            "0 search results", encoding="utf-8"
-        )
+        (fixture_dir / "likely_positive.txt").write_text("0 search results", encoding="utf-8")
 
         rc = cmd_smoke_test(_smoke_args(fixture_dir=str(fixture_dir)))
         assert rc == 1
