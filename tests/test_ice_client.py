@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from findICE.ice_client import _normalise_a_number_for_form, _select_country_option
+from findICE.ice_client import (
+    _build_facility_tab_detail,
+    _normalise_a_number_for_form,
+    _select_country_option,
+    _slugify_facility_tab_label,
+)
 
 
 class _MockOption:
@@ -66,3 +71,28 @@ class TestNormaliseANumber:
 
     def test_digits_only_is_unchanged(self):
         assert _normalise_a_number_for_form("12345678") == "12345678"
+
+
+class TestFacilityTabHelpers:
+    def test_slugify_facility_tab_label(self):
+        assert _slugify_facility_tab_label("Press & Media") == "press_and_media"
+
+    def test_build_facility_tab_detail_extracts_contacts_and_links(self):
+        detail = _build_facility_tab_detail(
+            "Contacting a Detainee",
+            (
+                "Call (318) 668-5900 or 1-833-4ICE-OPR. "
+                "Email slipcnotify@geogroup.com for scheduling."
+            ),
+            links=[
+                {"text": "Facility Page", "url": "https://example.com/facility"},
+                {"text": "Facility Page", "url": "https://example.com/facility"},
+            ],
+        )
+
+        assert detail["slug"] == "contacting_a_detainee"
+        assert detail["phones"] == ["1-833-4ICE-OPR", "(318) 668-5900"]
+        assert detail["emails"] == ["slipcnotify@geogroup.com"]
+        assert detail["links"] == [
+            {"text": "Facility Page", "url": "https://example.com/facility"}
+        ]

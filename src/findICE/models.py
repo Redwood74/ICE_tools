@@ -34,6 +34,13 @@ class SearchResult:
     facility_more_information_title: str = ""
     facility_more_information_text: str = ""
     facility_tabs: dict[str, str] = field(default_factory=dict)
+    facility_tab_details: dict[str, dict[str, object]] = field(default_factory=dict)
+    facility_contacting_a_detainee: str = ""
+    facility_legal_and_case_information: str = ""
+    facility_hours_of_visitation: str = ""
+    facility_sending_items_to_detainees: str = ""
+    facility_press_and_media: str = ""
+    facility_feedback_or_complaints: str = ""
     detail_page_text: str = ""
     detail_page_title: str = ""
     detail_page_url: str = ""
@@ -104,6 +111,33 @@ class RunSummary:
                 self.best_result.facility_more_information_title if self.best_result else None
             ),
             "facility_tabs": self.best_result.facility_tabs if self.best_result else None,
+            "facility_tab_details": (
+                self.best_result.facility_tab_details if self.best_result else None
+            ),
+            "facility_contacting_a_detainee": (
+                self.best_result.facility_contacting_a_detainee if self.best_result else None
+            ),
+            "facility_legal_and_case_information": (
+                self.best_result.facility_legal_and_case_information
+                if self.best_result
+                else None
+            ),
+            "facility_hours_of_visitation": (
+                self.best_result.facility_hours_of_visitation if self.best_result else None
+            ),
+            "facility_sending_items_to_detainees": (
+                self.best_result.facility_sending_items_to_detainees
+                if self.best_result
+                else None
+            ),
+            "facility_press_and_media": (
+                self.best_result.facility_press_and_media if self.best_result else None
+            ),
+            "facility_feedback_or_complaints": (
+                self.best_result.facility_feedback_or_complaints
+                if self.best_result
+                else None
+            ),
         }
 
 

@@ -29,7 +29,14 @@ class TestSmokeTestFixtures:
         fixture_dir.mkdir()
         (fixture_dir / "zero_result.txt").write_text("0 search results", encoding="utf-8")
         (fixture_dir / "likely_positive.txt").write_text(
-            "facility detention book-in date", encoding="utf-8"
+            (
+                "1 Search Result\n"
+                "Detainee Information\n"
+                "A-Number: 123456789\n"
+                "Book-In Date: 01/15/2024\n"
+                "Current Detention Facility: Example Facility\n"
+            ),
+            encoding="utf-8",
         )
         (fixture_dir / "ambiguous.txt").write_text(
             "This page loaded but classification should remain unclear with enough length.",

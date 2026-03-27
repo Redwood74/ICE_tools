@@ -134,15 +134,23 @@ ZERO_RESULT_PHRASES: list[str] = [
 
 # Phrases that indicate a real positive / detainee record found
 POSITIVE_PHRASES: list[str] = [
-    "facility",
-    "detention",
+    "1 search result",
+    "search results:",
     "book-in date",
     "book in date",
-    "detainee",
-    "country of birth",
-    "first name",
-    "last name",
-    "detention facility",
+    "detainee information",
+    "current detention facility",
+    "a-number:",
+    "status : in ice custody",
+    "status: in ice custody",
+]
+
+# Phrases that indicate the site loaded, but returned an internal/problem page
+AMBIGUOUS_PAGE_PHRASES: list[str] = [
+    "internal error",
+    "an error occurred processing your request",
+    "our apologies",
+    "go to locator home",
 ]
 
 # Phrases that suggest a bot challenge or block

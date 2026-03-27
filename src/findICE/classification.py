@@ -11,6 +11,7 @@ import logging
 
 from findICE.models import ResultState
 from findICE.selectors import (
+    AMBIGUOUS_PAGE_PHRASES,
     BOT_CHALLENGE_PHRASES,
     POSITIVE_PHRASES,
     ZERO_RESULT_PHRASES,
@@ -74,6 +75,12 @@ def classify_page_text(
     if zero_hits > 0:
         logger.info("Classification: ZERO_RESULT (zero_hits=%d)", zero_hits)
         return ResultState.ZERO_RESULT
+
+    # --- Explicit ambiguous/problem page ---
+    ambiguous_hits = _count_phrase_hits(lower, AMBIGUOUS_PAGE_PHRASES)
+    if ambiguous_hits > 0:
+        logger.info("Classification: AMBIGUOUS_REVIEW (ambiguous_hits=%d)", ambiguous_hits)
+        return ResultState.AMBIGUOUS_REVIEW
 
     # --- Positive indicators ---
     positive_hits = _count_phrase_hits(lower, POSITIVE_PHRASES)
