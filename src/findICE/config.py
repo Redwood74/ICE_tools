@@ -18,6 +18,8 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["AppConfig", "load_config"]
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -66,6 +68,11 @@ class AppConfig:
     # --- Keyring ---
     use_keyring: bool = False
 
+    # --- Batch / multi-person ---
+    people_file: Path | None = None
+    inter_person_delay_seconds: float = 10.0
+    timeline_retention_hours: float = 24.0
+
     # ---------------------------------------------------------------------------
     # Derived / computed properties
     # ---------------------------------------------------------------------------
@@ -74,6 +81,7 @@ class AppConfig:
     def a_number_masked(self) -> str:
         """A-number with all-but-last-two digits replaced with *."""
         from findICE.logging_utils import mask_a_number
+
         return mask_a_number(self.a_number)
 
     @property
@@ -93,8 +101,8 @@ class AppConfig:
         a_digits = re.sub(r"\D", "", self.a_number)
         if not a_digits or len(a_digits) not in (8, 9):
             errors.append(
-                f"A_NUMBER must be an 8- or 9-digit alien registration number "
-                f"(got '{self.a_number}')"
+                "A_NUMBER must be an 8- or 9-digit alien registration number "
+                f"(got {len(a_digits)} digit(s))"
             )
 
         if not self.country.strip():
@@ -104,9 +112,7 @@ class AppConfig:
             errors.append("ATTEMPTS_PER_RUN must be >= 1")
 
         if errors:
-            raise ConfigError(
-                "Configuration invalid:\n" + "\n".join(f"  • {e}" for e in errors)
-            )
+            raise ConfigError("Configuration invalid:\n" + "\n".join(f"  • {e}" for e in errors))
 
     def log_summary(self) -> None:
         """Log a redacted summary of the active config."""
@@ -145,6 +151,7 @@ def _keyring_get(key: str) -> str | None:
     """Try to retrieve a secret from keyring (returns None if unavailable)."""
     try:
         import keyring  # type: ignore
+
         value = keyring.get_password(KEYRING_SERVICE, key)
         return value
     except Exception:
@@ -172,7 +179,29 @@ def load_config(
     """
     _load_dotenv()
 
-    use_keyring = os.getenv("FINDICE_USE_KEYRING", "false").lower() in ("1", "true", "yes")
+    use_keyring = os.getenv("FINDICE_USE_KEYRING", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+    def _safe_int(key: str, default: str) -> int:
+        raw = _get_value(key) or default
+        try:
+            return int(raw)
+        except ValueError as err:
+            from findICE.exceptions import ConfigError
+
+            raise ConfigError(f"{key} must be an integer (got {raw!r})") from err
+
+    def _safe_float(key: str, default: str) -> float:
+        raw = _get_value(key) or default
+        try:
+            return float(raw)
+        except ValueError as err:
+            from findICE.exceptions import ConfigError
+
+            raise ConfigError(f"{key} must be a number (got {raw!r})") from err
 
     cfg = AppConfig(
         a_number=(
@@ -181,17 +210,15 @@ def load_config(
             else _get_value("A_NUMBER", use_keyring)
         ),
         country=(
-            override_country
-            if override_country is not None
-            else _get_value("COUNTRY", use_keyring)
+            override_country if override_country is not None else _get_value("COUNTRY", use_keyring)
         ),
         attempts_per_run=(
             override_attempts
             if override_attempts is not None
-            else int(_get_value("ATTEMPTS_PER_RUN") or "4")
+            else _safe_int("ATTEMPTS_PER_RUN", "4")
         ),
-        attempt_delay_seconds=float(_get_value("ATTEMPT_DELAY_SECONDS") or "5.0"),
-        attempt_jitter_seconds=float(_get_value("ATTEMPT_JITTER_SECONDS") or "2.0"),
+        attempt_delay_seconds=_safe_float("ATTEMPT_DELAY_SECONDS", "5.0"),
+        attempt_jitter_seconds=_safe_float("ATTEMPT_JITTER_SECONDS", "2.0"),
         headless=(
             override_headless
             if override_headless is not None
@@ -199,8 +226,8 @@ def load_config(
             # Only explicit "false", "0", or "no" values disable headless mode.
             else _get_value("HEADLESS", use_keyring).lower() not in ("0", "false", "no")
         ),
-        page_load_timeout_ms=int(_get_value("PAGE_LOAD_TIMEOUT_MS") or "30000"),
-        element_timeout_ms=int(_get_value("ELEMENT_TIMEOUT_MS") or "15000"),
+        page_load_timeout_ms=_safe_int("PAGE_LOAD_TIMEOUT_MS", "30000"),
+        element_timeout_ms=_safe_int("ELEMENT_TIMEOUT_MS", "15000"),
         teams_webhook_url=_get_value("TEAMS_WEBHOOK_URL", use_keyring),
         dry_run=(
             override_dry_run
@@ -212,6 +239,9 @@ def load_config(
         log_level=(_get_value("LOG_LEVEL") or "DEBUG").upper(),
         log_file=_get_value("LOG_FILE") or None,
         use_keyring=use_keyring,
+        people_file=(Path(_get_value("PEOPLE_FILE")) if _get_value("PEOPLE_FILE") else None),
+        inter_person_delay_seconds=_safe_float("INTER_PERSON_DELAY_SECONDS", "10.0"),
+        timeline_retention_hours=_safe_float("TIMELINE_RETENTION_HOURS", "24.0"),
     )
 
     return cfg

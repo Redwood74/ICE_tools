@@ -1,5 +1,8 @@
-# ICEpicks dependencies
-# Install with: pip install -r requirements.txt
+# ICEpicks dependencies (pinned versions)
+# Source-of-truth constraints: requirements.in
+# Re-pin by running: pip freeze | grep -i '...'
 
-playwright>=1.42.0
-python-dotenv>=1.0.0
+filelock==3.25.2
+playwright==1.58.0
+python-dotenv==1.2.2
+pyyaml==6.0.2

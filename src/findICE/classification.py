@@ -11,12 +11,15 @@ import logging
 
 from findICE.models import ResultState
 from findICE.selectors import (
+    AMBIGUOUS_PAGE_PHRASES,
     BOT_CHALLENGE_PHRASES,
     POSITIVE_PHRASES,
     ZERO_RESULT_PHRASES,
 )
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["classify_page_text", "best_state_from_run"]
 
 # Minimum number of positive-indicator phrases required to classify
 # as LIKELY_POSITIVE (prevents spurious hits on partial page loads).
@@ -62,8 +65,7 @@ def classify_page_text(
     bot_hits = _count_phrase_hits(lower, BOT_CHALLENGE_PHRASES)
     if bot_hits > 0 or http_status in (403, 429, 503):
         logger.info(
-            "Classification: BOT_CHALLENGE_OR_BLOCKED "
-            "(bot_hits=%d, http_status=%s)",
+            "Classification: BOT_CHALLENGE_OR_BLOCKED (bot_hits=%d, http_status=%s)",
             bot_hits,
             http_status,
         )
@@ -75,19 +77,21 @@ def classify_page_text(
         logger.info("Classification: ZERO_RESULT (zero_hits=%d)", zero_hits)
         return ResultState.ZERO_RESULT
 
+    # --- Explicit ambiguous/problem page ---
+    ambiguous_hits = _count_phrase_hits(lower, AMBIGUOUS_PAGE_PHRASES)
+    if ambiguous_hits > 0:
+        logger.info("Classification: AMBIGUOUS_REVIEW (ambiguous_hits=%d)", ambiguous_hits)
+        return ResultState.AMBIGUOUS_REVIEW
+
     # --- Positive indicators ---
     positive_hits = _count_phrase_hits(lower, POSITIVE_PHRASES)
     if positive_hits >= MIN_POSITIVE_PHRASE_HITS:
-        logger.info(
-            "Classification: LIKELY_POSITIVE (positive_hits=%d)", positive_hits
-        )
+        logger.info("Classification: LIKELY_POSITIVE (positive_hits=%d)", positive_hits)
         return ResultState.LIKELY_POSITIVE
 
     # --- Page appears loaded but content is unclear ---
     if len(raw_text.strip()) < MIN_VALID_TEXT_LENGTH:
-        logger.info(
-            "Classification: ERROR – page text too short (%d chars)", len(raw_text)
-        )
+        logger.info("Classification: ERROR – page text too short (%d chars)", len(raw_text))
         return ResultState.ERROR
 
     # --- Ambiguous: something is there but we can't classify it ---

@@ -1,0 +1,16 @@
+# ICEpicks Docker Compose configuration
+# Usage: docker compose run --rm findice check-once --dry-run
+
+services:
+  findice:
+    build: .
+    env_file: .env
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./state:/app/state
+      # Mount people.yml if using batch mode
+      # - ./people.yml:/app/people.yml:ro
+    environment:
+      - HEADLESS=true
+      - ARTIFACT_BASE_DIR=artifacts
+      - STATE_FILE=state/findice_state.json

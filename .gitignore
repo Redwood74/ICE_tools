@@ -208,3 +208,11 @@ __marimo__/
 artifacts/
 state/
 data/
+people.yml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor settings (personal)
+.vscode/settings.json

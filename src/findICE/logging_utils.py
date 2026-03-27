@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from logging.handlers import RotatingFileHandler
 
 # ---------------------------------------------------------------------------
 # Redaction helpers
@@ -31,6 +32,7 @@ def mask_a_number(value: str) -> str:
         "A 123456789" -> "A *******89"
         "123456789"   -> "*******89"
     """
+
     def _replace_prefixed(m: re.Match) -> str:
         # Group 1 is the digit portion; group 0 is the full match (e.g. "A-123456789")
         digits = m.group(1)
@@ -76,6 +78,7 @@ class RedactingFilter(logging.Filter):
         if record.msg and isinstance(record.msg, str):
             record.msg = redact_text(record.msg, self.a_number)
         if record.args:
+
             def _redact_arg(arg):
                 if isinstance(arg, str):
                     return redact_text(arg, self.a_number)
@@ -119,7 +122,9 @@ def configure_logging(
         _HANDLER_INSTALLED = True
 
     if log_file:
-        fh = logging.FileHandler(log_file, encoding="utf-8")
+        fh = RotatingFileHandler(
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
+        )
         fh.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
         root.addHandler(fh)
 

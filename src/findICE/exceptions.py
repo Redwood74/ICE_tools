@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+__all__ = [
+    "FindICEError",
+    "ConfigError",
+    "BotChallengeError",
+    "ArtifactError",
+    "NotificationError",
+    "StateStoreError",
+    "SelectorError",
+    "ClassificationError",
+]
+
 
 class FindICEError(Exception):
     """Base class for all findICE errors."""

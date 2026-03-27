@@ -35,8 +35,24 @@ class TestClassifyPageText:
         assert classify_page_text(text) == ResultState.LIKELY_POSITIVE
 
     def test_likely_positive_multiple_indicators(self):
-        text = "detainee facility country of birth book-in date detention detention"
+        text = (
+            "Search Results: 1\n"
+            "Detainee Information\n"
+            "A-Number: 123456789\n"
+            "Current Detention Facility: Some Facility\n"
+        )
         assert classify_page_text(text) == ResultState.LIKELY_POSITIVE
+
+    def test_generic_search_page_is_not_positive(self):
+        text = (
+            "Online Detainee Locator System\n"
+            "Search by A-Number\n"
+            "Country of Birth\n"
+            "Search by Biographical Information\n"
+            "First Name\n"
+            "Last Name\n"
+        )
+        assert classify_page_text(text) == ResultState.AMBIGUOUS_REVIEW
 
     def test_bot_challenge_captcha(self):
         text = "Please verify you are human. Captcha required."
@@ -48,17 +64,11 @@ class TestClassifyPageText:
 
     def test_bot_challenge_http_status_403(self):
         text = "Normal looking page text without bot phrases but with long content here yes"
-        assert (
-            classify_page_text(text, http_status=403)
-            == ResultState.BOT_CHALLENGE_OR_BLOCKED
-        )
+        assert classify_page_text(text, http_status=403) == ResultState.BOT_CHALLENGE_OR_BLOCKED
 
     def test_bot_challenge_http_status_429(self):
         text = "Normal looking page text without bot phrases but with long content here yes"
-        assert (
-            classify_page_text(text, http_status=429)
-            == ResultState.BOT_CHALLENGE_OR_BLOCKED
-        )
+        assert classify_page_text(text, http_status=429) == ResultState.BOT_CHALLENGE_OR_BLOCKED
 
     def test_ambiguous_review(self):
         text = (
@@ -69,6 +79,16 @@ class TestClassifyPageText:
         )
         result = classify_page_text(text)
         assert result == ResultState.AMBIGUOUS_REVIEW
+
+    def test_internal_error_page_with_site_chrome_is_ambiguous(self):
+        text = (
+            "Official Website of the Department of Homeland Security\n"
+            "Internal Error\n"
+            "Our apologies. An internal error has occurred.\n"
+            "Go To Locator Home\n"
+            "ICE Detention Facilities\n"
+        )
+        assert classify_page_text(text) == ResultState.AMBIGUOUS_REVIEW
 
     def test_error_empty_text(self):
         assert classify_page_text("", "") == ResultState.ERROR

@@ -2,6 +2,7 @@
 
 Commands:
   check-once       Run a single multi-attempt ICE locator query.
+  check-batch      Run checks for multiple people defined in a YAML file.
   smoke-test       Run the classification pipeline on local fixtures only.
   print-config     Print the resolved config (redacted).
   verify-webhook   Send a test message to the configured Teams webhook.
@@ -16,7 +17,10 @@ import sys
 from pathlib import Path
 
 from findICE import __version__
+from findICE.exceptions import BotChallengeError
 from findICE.logging_utils import configure_logging
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Argument parser
@@ -111,8 +115,42 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Fixture name: zero | positive | ambiguous | blocked",
     )
-    p_classify.add_argument(
-        "--list", action="store_true", help="List all available fixture names"
+    p_classify.add_argument("--list", action="store_true", help="List all available fixture names")
+
+    # --- check-batch ---
+    p_batch = subparsers.add_parser(
+        "check-batch",
+        help="Run checks for multiple people defined in a YAML file.",
+        description=(
+            "Loads person configs from a YAML file and runs "
+            "a full check-once cycle for each person sequentially."
+        ),
+    )
+    p_batch.add_argument(
+        "--people",
+        metavar="FILE",
+        help="Path to people YAML file (default: env PEOPLE_FILE)",
+    )
+    p_batch.add_argument("--headed", action="store_true", help="Run browser in headed mode")
+    p_batch.add_argument("--dry-run", action="store_true", help="Skip Teams notification")
+    p_batch.add_argument("--attempts", type=int, metavar="N", help="Override attempts per person")
+    p_batch.add_argument(
+        "--inter-delay",
+        type=float,
+        metavar="SECONDS",
+        help="Delay between people (default: env or 10s)",
+    )
+    p_batch.add_argument("--verbose", "-v", action="store_true", help="Print to console too")
+    p_batch.add_argument("--log-level", default=None, metavar="LEVEL", help="DEBUG/INFO/WARNING")
+
+    # --- setup ---
+    subparsers.add_parser(
+        "setup",
+        help="Interactive setup wizard — create or update .env configuration.",
+        description=(
+            "Walks through the required and optional settings and writes "
+            "a .env file. Existing values are shown as defaults."
+        ),
     )
 
     return parser
@@ -141,14 +179,18 @@ def cmd_check_once(args: argparse.Namespace) -> int:
     try:
         cfg.validate()
     except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        logger.error("Configuration error: %s", exc)
         return 1
 
-    summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
+    try:
+        summary = execute_run(cfg, verbose_console=getattr(args, "verbose", False))
+    except BotChallengeError:
+        logger.error("Bot challenge detected \u2013 see artifacts for details.")
+        return BotChallengeError.EXIT_CODE
     facility = ""
     if summary.best_result and summary.best_result.detention_facility:
         facility = f" detention_facility={summary.best_result.detention_facility}"
-    print(f"Run complete: best_state={summary.best_state.value}{facility}")
+    logger.info("Run complete: best_state=%s%s", summary.best_state.value, facility)
     return 0
 
 
@@ -171,18 +213,23 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
         try:
             cfg.validate()
         except Exception as exc:
-            print(f"ERROR: {exc}", file=sys.stderr)
+            logger.error("Configuration error: %s", exc)
             return 1
 
-        print(
-            "Running live smoke test with .env config "
-            f"(attempts={cfg.attempts_per_run}, headless={cfg.headless}, dry_run=True)"
+        logger.info(
+            "Running live smoke test with .env config (attempts=%d, headless=%s, dry_run=True)",
+            cfg.attempts_per_run,
+            cfg.headless,
         )
         summary = execute_run(cfg, verbose_console=False)
         facility = ""
         if summary.best_result and summary.best_result.detention_facility:
             facility = f" detention_facility={summary.best_result.detention_facility}"
-        print(f"Live smoke test complete: best_state={summary.best_state.value}{facility}")
+        logger.info(
+            "Live smoke test complete: best_state=%s%s",
+            summary.best_state.value,
+            facility,
+        )
         if summary.best_state == ResultState.ERROR:
             return 1
         return 0
@@ -206,32 +253,34 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
 
     txt_files = sorted(fixture_dir.glob("*.txt"))
     if not txt_files:
-        print(f"No fixture .txt files found in {fixture_dir}", file=sys.stderr)
+        logger.error("No fixture .txt files found in %s", fixture_dir)
         return 1
 
-    print(f"Running smoke test on {len(txt_files)} fixtures in {fixture_dir}")
+    logger.info("Running smoke test on %d fixtures in %s", len(txt_files), fixture_dir)
     all_passed = True
     for fpath in txt_files:
         text = fpath.read_text(encoding="utf-8")
         state = classify_page_text(text)
         expected = expected_states.get(fpath.stem)
         if expected is None:
-            print(f"  {fpath.name:40s}  ->  {state.value} (no expectation)")
+            logger.info("  %s  ->  %s (no expectation)", fpath.name, state.value)
             continue
         if state == expected:
-            print(f"  {fpath.name:40s}  ->  PASS ({state.value})")
+            logger.info("  %s  ->  PASS (%s)", fpath.name, state.value)
         else:
             all_passed = False
-            print(
-                f"  {fpath.name:40s}  ->  FAIL "
-                f"(expected={expected.value}, got={state.value})"
+            logger.error(
+                "  %s  ->  FAIL (expected=%s, got=%s)",
+                fpath.name,
+                expected.value,
+                state.value,
             )
 
     if all_passed:
-        print("Smoke test complete: all fixture expectations passed.")
+        logger.info("Smoke test complete: all fixture expectations passed.")
         return 0
 
-    print("Smoke test failed: one or more fixtures did not match expectations.", file=sys.stderr)
+    logger.error("Smoke test failed: one or more fixtures did not match expectations.")
     return 1
 
 
@@ -267,7 +316,7 @@ def cmd_verify_webhook(args: argparse.Namespace) -> int:
     cfg = load_config()
 
     if not cfg.has_webhook:
-        print("TEAMS_WEBHOOK_URL is not configured.", file=sys.stderr)
+        logger.error("TEAMS_WEBHOOK_URL is not configured.")
         return 1
 
     payload = NotificationPayload(
@@ -284,10 +333,10 @@ def cmd_verify_webhook(args: argparse.Namespace) -> int:
     notifier = TeamsNotifier(cfg.teams_webhook_url)
     ok = notifier.send(payload)
     if ok:
-        print("Webhook test message sent successfully.")
+        logger.info("Webhook test message sent successfully.")
         return 0
     else:
-        print("Webhook test FAILED. Check logs for details.", file=sys.stderr)
+        logger.error("Webhook test FAILED. Check logs for details.")
         return 1
 
 
@@ -296,9 +345,7 @@ def cmd_classify_sample(args: argparse.Namespace) -> int:
 
     configure_logging(level=logging.WARNING)
 
-    fixture_dir = (
-        Path(__file__).parent.parent.parent / "tests" / "fixtures"
-    )
+    fixture_dir = Path(__file__).parent.parent.parent / "tests" / "fixtures"
 
     # Map friendly names to fixture file stems
     name_map = {
@@ -312,31 +359,174 @@ def cmd_classify_sample(args: argparse.Namespace) -> int:
     }
 
     if getattr(args, "list", False):
-        print("Available fixture names:")
+        logger.info("Available fixture names:")
         for k in sorted(name_map.keys()):
-            print(f"  {k}")
+            logger.info("  %s", k)
         return 0
 
     if not args.sample:
-        print("Provide a sample name. Use --list to see options.", file=sys.stderr)
+        logger.error("Provide a sample name. Use --list to see options.")
         return 1
 
     key = args.sample.lower().strip()
     stem = name_map.get(key)
     if not stem:
-        print(
-            f"Unknown sample '{args.sample}'. Use --list to see options.", file=sys.stderr
-        )
+        logger.error("Unknown sample '%s'. Use --list to see options.", args.sample)
         return 1
 
     fpath = fixture_dir / f"{stem}.txt"
     if not fpath.exists():
-        print(f"Fixture file not found: {fpath}", file=sys.stderr)
+        logger.error("Fixture file not found: %s", fpath)
         return 1
 
     text = fpath.read_text(encoding="utf-8")
     state = classify_page_text(text)
-    print(f"Sample '{args.sample}' classified as: {state.value}")
+    logger.info("Sample '%s' classified as: %s", args.sample, state.value)
+    return 0
+
+
+def cmd_check_batch(args: argparse.Namespace) -> int:
+    """Run batch checks for multiple people from a YAML config."""
+    from findICE.batch import execute_batch, load_people
+    from findICE.config import load_config
+
+    cfg = load_config(
+        override_attempts=args.attempts,
+        override_headless=not args.headed if args.headed else None,
+        override_dry_run=args.dry_run or None,
+    )
+
+    log_level = getattr(logging, (args.log_level or cfg.log_level).upper(), logging.DEBUG)
+    configure_logging(level=log_level, a_number="BATCH", log_file=cfg.log_file)
+
+    people_path = Path(args.people) if args.people else cfg.people_file
+    if not people_path:
+        logger.error("No people file specified. Use --people or set PEOPLE_FILE env var.")
+        return 1
+
+    try:
+        people = load_people(people_path)
+    except Exception as exc:
+        logger.error("Error loading people file: %s", exc)
+        return 1
+
+    inter_delay = (
+        args.inter_delay if args.inter_delay is not None else cfg.inter_person_delay_seconds
+    )
+
+    logger.info("Batch run: %d people from %s", len(people), people_path)
+    summaries = execute_batch(
+        config=cfg,
+        people=people,
+        inter_person_delay=inter_delay,
+        verbose_console=getattr(args, "verbose", False),
+    )
+
+    # Summary table
+    logger.info("Batch complete: %d of %d runs finished", len(summaries), len(people))
+    for s in summaries:
+        label = s.person_label or "unknown"
+        facility = ""
+        if s.best_result and s.best_result.detention_facility:
+            facility = f" facility={s.best_result.detention_facility}"
+        logger.info("  %-20s  %s%s", label, s.best_state.value, facility)
+
+    errors = [s for s in summaries if s.best_state.value == "ERROR"]
+    if errors:
+        return 1
+    return 0
+
+
+def cmd_setup(args: argparse.Namespace) -> int:
+    """Interactive setup wizard — create or update .env configuration."""
+    env_path = Path(".env")
+
+    # Load existing values if .env already exists
+    existing: dict[str, str] = {}
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, _, val = line.partition("=")
+                existing[key.strip()] = val.strip()
+        print("Found existing .env — current values shown as defaults.\n")
+    else:
+        print("No .env file found — creating a new one.\n")
+
+    def _prompt(label: str, key: str, *, required: bool = False, hide: bool = False) -> str:
+        default = existing.get(key, "")
+        display_default = "(configured)" if hide and default else default
+        suffix = f" [{display_default}]" if display_default else ""
+        while True:
+            value = input(f"  {label}{suffix}: ").strip()
+            if not value:
+                value = default
+            if required and not value:
+                print(f"    ⚠ {label} is required.")
+                continue
+            return value
+
+    print("=" * 50)
+    print("  ICEpicks Setup Wizard")
+    print("=" * 50)
+
+    print("\n── Required ──")
+    a_number = _prompt("Alien registration number (A-XXXXXXXXX)", "A_NUMBER", required=True)
+    country = _prompt("Country of origin (e.g. MEXICO)", "COUNTRY", required=True)
+
+    print("\n── Notifications ──")
+    webhook = _prompt("Teams webhook URL (blank = dry-run)", "TEAMS_WEBHOOK_URL")
+
+    print("\n── Run behavior (press Enter for defaults) ──")
+    attempts = _prompt("Attempts per run", "ATTEMPTS_PER_RUN") or "4"
+    delay = _prompt("Delay between attempts (seconds)", "ATTEMPT_DELAY_SECONDS") or "5.0"
+    jitter = _prompt("Random jitter (seconds)", "ATTEMPT_JITTER_SECONDS") or "2.0"
+    headless = _prompt("Headless mode (true/false)", "HEADLESS") or "true"
+    dry_run = _prompt("Dry run (true/false)", "DRY_RUN") or "false"
+
+    print("\n── Paths (press Enter for defaults) ──")
+    artifact_dir = _prompt("Artifact directory", "ARTIFACT_BASE_DIR") or "artifacts"
+    state_file = _prompt("State file path", "STATE_FILE") or "state/findice_state.json"
+
+    print("\n── Logging (press Enter for defaults) ──")
+    log_level = _prompt("Log level (DEBUG/INFO/WARNING)", "LOG_LEVEL") or "DEBUG"
+    log_file = _prompt("Log file path (blank = stderr only)", "LOG_FILE") or ""
+
+    lines = [
+        "# ============================================================",
+        "# ICEpicks – environment configuration",
+        "# Generated by 'findice setup'",
+        "# NEVER commit this file to version control.",
+        "# ============================================================",
+        "",
+        "# ----- Required -----",
+        f"A_NUMBER={a_number}",
+        f"COUNTRY={country}",
+        "",
+        "# ----- Notification -----",
+        f"TEAMS_WEBHOOK_URL={webhook}",
+        "",
+        "# ----- Run behavior -----",
+        f"ATTEMPTS_PER_RUN={attempts}",
+        f"ATTEMPT_DELAY_SECONDS={delay}",
+        f"ATTEMPT_JITTER_SECONDS={jitter}",
+        f"HEADLESS={headless}",
+        f"DRY_RUN={dry_run}",
+        "",
+        "# ----- Paths -----",
+        f"ARTIFACT_BASE_DIR={artifact_dir}",
+        f"STATE_FILE={state_file}",
+        "",
+        "# ----- Logging -----",
+        f"LOG_LEVEL={log_level}",
+        f"LOG_FILE={log_file}",
+    ]
+
+    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"\n✓ Configuration saved to {env_path.resolve()}")
+    print("  Run 'findice check-once --dry-run' to verify.")
     return 0
 
 
@@ -355,10 +545,12 @@ def main(argv: list[str] | None = None) -> None:
 
     dispatch = {
         "check-once": cmd_check_once,
+        "check-batch": cmd_check_batch,
         "smoke-test": cmd_smoke_test,
         "print-config": cmd_print_config,
         "verify-webhook": cmd_verify_webhook,
         "classify-sample": cmd_classify_sample,
+        "setup": cmd_setup,
     }
 
     handler = dispatch.get(args.command)

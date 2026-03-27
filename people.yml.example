@@ -1,0 +1,26 @@
+# people.yml — Multi-person batch configuration for findICE
+#
+# Copy this file to people.yml and fill in real values.
+# Do NOT commit people.yml — it is in .gitignore.
+#
+# Required fields per person:
+#   label    — friendly name (used in logs + artifact subdirs)
+#   a_number — alien registration number (e.g. A-123456789)
+#   country  — country of origin (must match ICE dropdown exactly)
+#
+# Optional overrides per person:
+#   attempts       — override attempts_per_run from .env
+#   delay_seconds  — override attempt_delay_seconds
+#   jitter_seconds — override attempt_jitter_seconds
+
+people:
+  - label: "Maria Garcia"
+    a_number: "A-123456789"
+    country: "MEXICO"
+
+  - label: "Juan Lopez"
+    a_number: "A-987654321"
+    country: "GUATEMALA"
+    attempts: 2
+    delay_seconds: 8
+    jitter_seconds: 3

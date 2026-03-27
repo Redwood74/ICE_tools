@@ -20,6 +20,15 @@ from findICE.models import NotificationPayload
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "Notifier",
+    "TeamsNotifier",
+    "ConsoleNotifier",
+    "NoOpNotifier",
+    "build_notifier",
+    "build_notification_payload",
+]
+
 _TEAMS_CONTENT_TYPE = "application/json"
 _TEAMS_TIMEOUT_SECONDS = 15
 
@@ -45,10 +54,31 @@ class Notifier(Protocol):
 class TeamsNotifier:
     """Send a message card to a Microsoft Teams incoming webhook."""
 
+    # Domains allowed for Teams/Power Automate webhook endpoints.
+    _ALLOWED_DOMAINS = (
+        ".webhook.office.com",
+        ".office.com",
+        ".logic.azure.com",
+        ".azure-api.net",
+    )
+
     def __init__(self, webhook_url: str) -> None:
         if not webhook_url:
             raise ValueError("webhook_url must not be empty")
+        self._validate_webhook_url(webhook_url)
         self.webhook_url = webhook_url
+
+    @classmethod
+    def _validate_webhook_url(cls, url: str) -> None:
+        """Enforce HTTPS and a trusted Microsoft domain."""
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        if parsed.scheme != "https":
+            raise ValueError(f"Webhook URL must use HTTPS (got {parsed.scheme!r})")
+        host = (parsed.hostname or "").lower()
+        if not any(host.endswith(d) for d in cls._ALLOWED_DOMAINS):
+            raise ValueError(f"Webhook URL domain {host!r} is not a trusted Microsoft endpoint")
 
     def send(self, payload: NotificationPayload) -> bool:
         card = payload.to_teams_card()
@@ -68,9 +98,7 @@ class TeamsNotifier:
             if status == 200:
                 logger.info("Teams notification sent successfully (status=200)")
                 return True
-            logger.warning(
-                "Teams webhook returned unexpected status %d: %s", status, response_body
-            )
+            logger.warning("Teams webhook returned unexpected status %d: %s", status, response_body)
             return False
         except Exception as exc:
             logger.error("Teams notification failed: %s", exc)

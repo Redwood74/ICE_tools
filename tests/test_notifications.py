@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
 from findICE.models import NotificationPayload, ResultState
 from findICE.notifications import (
     ConsoleNotifier,
     NoOpNotifier,
+    TeamsNotifier,
     build_notification_payload,
     build_notifier,
 )
@@ -89,6 +92,7 @@ class TestBuildNotifier:
             webhook_url="https://outlook.office.com/webhook/test", dry_run=False
         )
         from findICE.notifications import TeamsNotifier
+
         assert isinstance(notifiers[0], TeamsNotifier)
 
 
@@ -130,3 +134,86 @@ class TestBuildNotificationPayload:
         assert payload.state == ResultState.LIKELY_POSITIVE
         assert payload.attempts == 4
         assert len(payload.hash_prefix) == 12
+
+
+# ---------------------------------------------------------------------------
+# TeamsNotifier._validate_webhook_url
+# ---------------------------------------------------------------------------
+
+
+class TestValidateWebhookUrl:
+    def test_valid_office_com_url(self):
+        # Should not raise
+        TeamsNotifier._validate_webhook_url("https://outlook.office.com/webhook/abc123")
+
+    def test_valid_logic_azure_url(self):
+        TeamsNotifier._validate_webhook_url("https://prod-01.logic.azure.com/workflows/abc")
+
+    def test_rejects_http(self):
+        with pytest.raises(ValueError, match="HTTPS"):
+            TeamsNotifier._validate_webhook_url("http://outlook.office.com/webhook/test")
+
+    def test_rejects_untrusted_domain(self):
+        with pytest.raises(ValueError, match="not a trusted"):
+            TeamsNotifier._validate_webhook_url("https://evil.example.com/webhook")
+
+    def test_rejects_empty_url(self):
+        with pytest.raises(ValueError):
+            TeamsNotifier("")
+
+
+class TestTeamsNotifierSend:
+    def test_send_success(self, monkeypatch):
+        """Verify send returns True when urllib gets 200."""
+
+        class FakeResponse:
+            status = 200
+
+            def read(self):
+                return b"1"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        monkeypatch.setattr(
+            "urllib.request.urlopen",
+            lambda req, timeout=None: FakeResponse(),
+        )
+        notifier = TeamsNotifier("https://outlook.office.com/webhook/test")
+        payload = _make_payload()
+        assert notifier.send(payload) is True
+
+    def test_send_failure_returns_false(self, monkeypatch):
+        """Verify send returns False when urllib raises."""
+
+        def explode(req, timeout=None):
+            raise ConnectionError("network down")
+
+        monkeypatch.setattr("urllib.request.urlopen", explode)
+        notifier = TeamsNotifier("https://outlook.office.com/webhook/test")
+        payload = _make_payload()
+        assert notifier.send(payload) is False
+
+    def test_send_non_200_returns_false(self, monkeypatch):
+        class FakeResponse:
+            status = 429
+
+            def read(self):
+                return b"rate limited"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        monkeypatch.setattr(
+            "urllib.request.urlopen",
+            lambda req, timeout=None: FakeResponse(),
+        )
+        notifier = TeamsNotifier("https://outlook.office.com/webhook/test")
+        payload = _make_payload()
+        assert notifier.send(payload) is False

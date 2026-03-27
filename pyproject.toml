@@ -23,8 +23,10 @@ classifiers = [
 ]
 
 dependencies = [
+    "filelock>=3.0",
     "playwright>=1.42.0",
     "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -43,13 +45,17 @@ findice = "findICE.cli:main"
 Homepage = "https://github.com/Redwood74/ICE_tools"
 Repository = "https://github.com/Redwood74/ICE_tools"
 "Bug Tracker" = "https://github.com/Redwood74/ICE_tools/issues"
+Documentation = "https://github.com/Redwood74/ICE_tools#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+findICE = ["py.typed"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --strict-markers -W error::DeprecationWarning"
 markers = [
     "live: marks tests as requiring a live ICE site connection (deselect with -m 'not live')",
 ]
