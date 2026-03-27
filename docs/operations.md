@@ -40,6 +40,14 @@ findice check-once --dry-run
 
 This runs all attempts and saves artifacts but sends no Teams notification.
 
+For a quick `.env`-driven smoke check, run:
+
+```powershell
+findice smoke-test --live
+```
+
+Live smoke mode always forces dry-run, so it never sends a Teams alert.
+
 Alternatively, `verify-webhook` sends a single test message:
 
 ```powershell

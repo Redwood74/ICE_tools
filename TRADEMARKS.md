@@ -1,160 +1,142 @@
-# Trademark Policy — ICEpicks
+# Trademark Policy for ICEpicks
 
-**Marks covered:** ICEpicks™ (word mark), the ICEpicks logo, ICEpicks badge,
-and any stylized or confusingly similar variants.  
-**Owner:** Ray Quinney & Nebeker P.C.  
-**Contact:** trademarks.icepicks@rqn.com
+_Last updated: 2026-03-26 • Contact: trademarks.icepicks@rqn.com_
 
----
-
-## 1. Overview
-
-The **ICEpicks** name and associated marks ("the Marks") are trademarks of
-Ray Quinney & Nebeker P.C. The software license (IAPL v1.0) grants rights to
-use the *software*; it does **not** grant any right to use the Marks.
-
-This policy governs all use of the Marks, whether in connection with the
-Software or otherwise.
+This document explains how you may (and may not) use the names and visual
+assets associated with **ICEpicks** and **Ray Quinney & Nebeker P.C. (RQN)**.
+It is separate from, and in addition to, the software license (`LICENSE.md`).
+Using our software does **not** grant any rights to our trademarks.
 
 ---
 
-## 2. Marks covered
+## 1) Marks Covered
 
-This policy applies to:
+Owned by **Ray Quinney & Nebeker P.C. (RQN)** (the “Owner”):
 
-- The word mark **ICEpicks**
-- Any ICEpicks logo, badge, icon, or stylized rendering
-- Any variant that is confusingly similar to any of the above, including
-  misspellings, typographic substitutions, and translations
+- **Word marks:** “ICEpicks”, “Ray Quinney & Nebeker P.C.”, “RQN”, and related taglines
+- **Logos:** primary logo, symbol/icon, lockup, “Powered by ICEpicks” badge
+- **Other identifiers:** stylized text, graphics, and any confusingly similar variations
 
----
-
-## 3. Permitted uses (no permission required)
-
-The following uses are permitted without prior written permission:
-
-**(a) Nominative fair use.** You may use the word "ICEpicks" to accurately
-refer to the ICEpicks software in factual contexts, such as:
-- "This script uses ICEpicks."
-- "I tested ICEpicks for our legal aid clinic."
-- "ICEpicks is a locator monitoring tool licensed under IAPL v1.0."
-
-**(b) Compatibility and attribution references.** You may state that your
-fork or derivative work is "based on ICEpicks" or "derived from ICEpicks,"
-provided you also display the required disclaimer (Section 4).
-
-**(c) Academic and journalistic reference.** You may refer to ICEpicks by
-name in academic papers, news articles, and educational materials for factual,
-informational purposes.
+> Collectively these are the **Marks**.
 
 ---
 
-## 4. Required disclaimer for derivative works and forks
+## 2) Ownership and Goodwill
 
-Whenever you refer to a fork or derivative work as being based on ICEpicks,
-you **must** display the following disclaimer prominently (e.g., in your
-README, documentation, and repository description):
-
-> Not affiliated with or endorsed by Ray Quinney & Nebeker P.C. or the
-> ICEpicks team. This is an independent fork based on ICEpicks.
-
-The disclaimer must be visible without requiring the reader to take any
-affirmative action to see it.
+The Owner retains all rights, title, and interest in the Marks and the goodwill
+that arises from their use. You agree not to challenge the Owner’s ownership,
+validity, or exclusive rights in the Marks.
 
 ---
 
-## 5. Uses requiring written permission
+## 3) General Rule
 
-The following uses require **prior written permission** from the trademark
-owner:
-
-- Using the ICEpicks name or logo in a product name, service name, or
-  organization name
-- Using ICEpicks in domain names, subdomains, social media handles, or
-  app store listings
-- Using the ICEpicks logo, badge, or any stylized mark in any context
-- Marketing, advertising, or promotional materials that feature the Marks
-- Signage, merchandise, or branded physical goods
-- Sponsorships, co-branding, or partnerships
-- Any use that implies affiliation with, endorsement by, or official status
-  from Ray Quinney & Nebeker P.C. or the ICEpicks team
-
-To request permission, contact: trademarks.icepicks@rqn.com
+You **may not** use the Marks without prior written permission from the Owner,
+**except** as expressly permitted below under “Nominative Fair Use” and
+“Compatibility References.”
 
 ---
 
-## 6. Forks must use distinct branding
+## 4) Permitted Uses (No Prior Permission Required)
 
-If you create and distribute a fork or derivative work, you **must**:
+- **Nominative fair use:** Refer to the project or firm in plain text when
+  accurately describing the software, citing it, or linking to the official site/repo.
+- **Compatibility references:** State factually that your tool “works with”,
+  “uses”, or “is powered by” **ICEpicks**, provided this does not suggest
+  endorsement or affiliation.
+- **Attribution in code/docs:** Include required license attribution as described
+  in `LICENSE.md` (distinct from trademark permission).
 
-- Choose a product name that is clearly distinct from "ICEpicks"
-- Not use the ICEpicks logo, badge, or stylized mark
-- Display the disclaimer in Section 4 prominently
-- Not use any branding that would cause a reasonable person to believe the
-  fork is the official ICEpicks project or affiliated with Ray Quinney &
-  Nebeker P.C.
+**You must include a visible disclaimer when relevant:**
 
----
-
-## 7. Categorically prohibited uses
-
-The following uses are **never** permitted, regardless of whether you have
-otherwise obtained permission:
-
-- Using the Marks in connection with immigration enforcement, detention,
-  surveillance, or any operational ICE, CBP, or DHS activity
-- Using the Marks to imply that ICEpicks endorses, supports, or is affiliated
-  with any immigration enforcement activity
-- Using the Marks in a manner that harms, endangers, or is adverse to
-  detained immigrants or their families
-- Using the Marks in any context that violates Section 5 of the IAPL v1.0
+> “**Not affiliated with or endorsed by Ray Quinney & Nebeker P.C. (RQN) or the ICEpicks team.**”
 
 ---
 
-## 8. "Powered by ICEpicks" badge (optional)
+## 5) Uses Requiring Written Permission
 
-Organizations that use ICEpicks in qualifying advocacy contexts may display
-a "Powered by ICEpicks" badge, subject to the following:
+- Any **logo**, icon, or stylized mark (including recolors or derivatives)
+- Naming a product, service, organization, or event with the Marks or close variants
+- Registering or using **domains**, social handles, or app-store entries with the Marks
+- Marketing campaigns, press releases, packaging, UI chrome, or signage showing the Marks
+- Selling **merchandise** bearing the Marks
+- Sponsorships, co-branding, or endorsements
 
-- The badge may only be used by organizations engaged in Permitted
-  Non-Commercial Use under the IAPL v1.0
-- You must use the official badge assets (when made available) or a plain
-  text equivalent: "Powered by ICEpicks"
-- The badge must link to the official ICEpicks repository or website
-- Use of the badge in contexts that violate Section 7 is prohibited
-
-Official badge assets are not yet published. Until official assets are
-available, use plain text: "Powered by ICEpicks"
+Request permission: **trademarks.icepicks@rqn.com** (include mockups, channels, timelines).
 
 ---
 
-## 9. No endorsement implied
+## 6) Prohibited Uses (No Exceptions)
 
-Permitted use of the Marks does not imply that Ray Quinney & Nebeker P.C.
-or the ICEpicks team endorses your organization, your work, or your use of
-the Software.
-
----
-
-## 10. Reporting misuse
-
-If you observe use of the Marks that violates this policy, please report it
-to: trademarks.icepicks@rqn.com
-
-Include:
-- A description of the misuse
-- A URL or other identifying information
-- Your contact information (optional)
+- Any use implying **endorsement, sponsorship, or official status** without permission
+- Use of the Marks in connection with **immigration enforcement, detention,
+  surveillance, or operational ICE/CBP/DHS use**
+- Confusingly similar names (typosquats, homographs, plurals, hyphenated variants)
+- Presenting a fork or derivative as “official”, “certified”, or “partner”
 
 ---
 
-## 11. Enforcement
+## 7) Forks & Distributions — Required Disclaimer
 
-The trademark owner reserves all rights to enforce this policy and to
-pursue legal remedies for infringement or dilution of the Marks, to the
-fullest extent permitted by law.
+If you distribute a fork or derivative:
+
+- Choose a name and branding **clearly distinct** from the Marks
+- Display a prominent disclaimer on your homepage and repo:
+
+> “This is an independent fork of **ICEpicks**. **Not affiliated with or
+> endorsed by Ray Quinney & Nebeker P.C. (RQN).**”
+
+- Do **not** use any ICEpicks or RQN **logo** or stylized mark without written permission
 
 ---
 
-*For trademark inquiries: trademarks.icepicks@rqn.com*  
-*For licensing inquiries: licensing.icepicks@rqn.com*
+## 8) “Powered by ICEpicks” Badge
+
+A standardized badge is provided for factual compatibility credit.
+
+- **Allowed:** place the badge in footers/about pages with a link to the official repo.
+- **Not allowed:** enlarging as dominant branding, implying sponsorship, recoloring, or merchandise.
+
+Badge assets (SVG/PNG) and usage specs live at: `/brand/README.md`.
+
+---
+
+## 9) Visual Standards (Logos)
+
+If we grant logo permission:
+
+- **Clear space:** keep clear space equal to the height of the “I” in ICEpicks on all sides
+- **Minimum size:** do not display logos below **24px** height
+- **Colors:** use only the official brand palette (see `/brand/colors.md`)
+- **Do not:** skew, rotate, animate, add effects, outline, crop, recolor, or place on busy backgrounds
+
+---
+
+## 10) No Trademark Rights via Code License
+
+The software license (`IAPL v1.0`) **does not** grant any rights to the Marks.
+License attribution does **not** authorize use of logos or brand names as source identifiers.
+
+---
+
+## 11) Reporting Misuse
+
+Report misuse to **trademarks.icepicks@rqn.com** with URLs/screenshots.
+
+---
+
+## 12) Enforcement
+
+We may use graduated enforcement, including advisory notices, takedowns,
+domain/handle disputes, license revocation (where applicable), and legal action.
+
+---
+
+## 13) Versioning
+
+We may update this policy from time to time. Substantive changes will be noted
+in the repository. Continued use after changes constitutes acceptance.
+
+---
+
+© 2026 **Ray Quinney & Nebeker P.C. (RQN)**. All rights reserved.

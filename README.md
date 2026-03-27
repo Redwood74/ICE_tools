@@ -122,6 +122,9 @@ findice classify-sample --list
 
 # Run smoke test on all local fixtures
 findice smoke-test
+
+# Run live smoke test using .env (forced dry-run, no Teams message)
+findice smoke-test --live
 ```
 
 ---

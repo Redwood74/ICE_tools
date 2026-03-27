@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,36 @@ _RESULT_READY_SIGNALS = [
     "facility",
     "detainee",
 ]
+
+
+def _select_country_option(country_sel, country: str, timeout_ms: int) -> None:
+    """Select country by value/label with case-tolerant fallback."""
+    for kwargs in (
+        {"value": country},
+        {"label": country},
+        {"label": country.upper()},
+        {"label": country.title()},
+    ):
+        try:
+            country_sel.select_option(**kwargs, timeout=timeout_ms)
+            return
+        except Exception:
+            continue
+
+    option_locs = country_sel.locator("option")
+    option_count = option_locs.count()
+    for idx in range(option_count):
+        label = option_locs.nth(idx).inner_text().strip()
+        if label.lower() == country.strip().lower():
+            country_sel.select_option(label=label, timeout=timeout_ms)
+            return
+
+    raise RuntimeError(f"Could not select country '{country}'")
+
+
+def _normalise_a_number_for_form(a_number: str) -> str:
+    """Return digits-only A-number expected by the locator input control."""
+    return re.sub(r"\D", "", a_number)
 
 
 def _extract_page_text(page) -> str:
@@ -124,6 +155,7 @@ def run_single_attempt(
         attempt_number=attempt_number,
         timestamp=datetime.now(timezone.utc),
     )
+    page = None
 
     try:
         page = context.new_page()
@@ -143,23 +175,14 @@ def run_single_attempt(
         a_input = resolve_locator(page, A_NUMBER_INPUT)
         if a_input is None:
             raise RuntimeError("Could not locate A-number input field")
-        a_input.fill(a_number, timeout=element_timeout_ms)
+        a_input.fill(_normalise_a_number_for_form(a_number), timeout=element_timeout_ms)
         logger.debug("Attempt %d: filled A-number field", attempt_number)
 
         # --- Select country ---
         country_sel = resolve_locator(page, COUNTRY_SELECT)
         if country_sel is None:
             raise RuntimeError("Could not locate country select element")
-        # Try exact value first, then case-insensitive label
-        try:
-            country_sel.select_option(country, timeout=element_timeout_ms)
-        except Exception:
-            try:
-                country_sel.select_option(label=country, timeout=element_timeout_ms)
-            except Exception:
-                country_sel.select_option(
-                    label=country.upper(), timeout=element_timeout_ms
-                )
+        _select_country_option(country_sel, country, element_timeout_ms)
         logger.debug("Attempt %d: selected country '%s'", attempt_number, country)
 
         # --- Click search ---
@@ -204,7 +227,10 @@ def run_single_attempt(
             # Try to save whatever we have
             try:
                 save_attempt_artifacts(
-                    None, result, run_dir, save_screenshots=False
+                    page,
+                    result,
+                    run_dir,
+                    save_screenshots=save_screenshots and page is not None,
                 )
             except Exception:
                 pass

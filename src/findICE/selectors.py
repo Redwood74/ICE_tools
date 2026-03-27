@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 # Selector definitions
 # ---------------------------------------------------------------------------
 
-ICE_LOCATOR_URL = "https://locator.ice.gov/odls/#/index"
+# As of March 2026, the working search form route is #/search.
+ICE_LOCATOR_URL = "https://locator.ice.gov/odls/#/search"
 
 # The page sometimes redirects or loads slowly; give it time.
 PAGE_LOAD_TIMEOUT_MS = 30_000

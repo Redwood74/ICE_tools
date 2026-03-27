@@ -53,14 +53,34 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- smoke-test ---
     p_smoke = subparsers.add_parser(
         "smoke-test",
-        help="Run classification against local fixture files (no live ICE queries).",
-        description="Exercises the classification pipeline without touching the ICE site.",
+        help="Run fixture smoke tests or a live dry-run smoke check.",
+        description=(
+            "Default mode classifies local fixtures only. "
+            "Use --live to run a one-off check with .env config."
+        ),
     )
     p_smoke.add_argument(
         "--fixture-dir",
         default=None,
         metavar="DIR",
         help="Override default fixture directory",
+    )
+    p_smoke.add_argument(
+        "--live",
+        action="store_true",
+        help="Run a live one-off smoke check using .env values (forced dry-run).",
+    )
+    p_smoke.add_argument(
+        "--attempts",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Number of attempts for --live mode (default: 1)",
+    )
+    p_smoke.add_argument(
+        "--headed",
+        action="store_true",
+        help="Run browser in headed mode for --live smoke checks",
     )
 
     # --- print-config ---
@@ -130,7 +150,37 @@ def cmd_check_once(args: argparse.Namespace) -> int:
 
 
 def cmd_smoke_test(args: argparse.Namespace) -> int:
-    """Run classification against all local fixture files."""
+    """Run fixture classification smoke tests or a live dry-run smoke check."""
+    from findICE.models import ResultState
+
+    if getattr(args, "live", False):
+        from findICE.config import load_config
+        from findICE.main import execute_run
+
+        cfg = load_config(
+            override_attempts=args.attempts,
+            override_headless=not args.headed if args.headed else None,
+            override_dry_run=True,  # smoke checks must never notify
+        )
+        log_level = getattr(logging, cfg.log_level.upper(), logging.INFO)
+        configure_logging(level=log_level, a_number=cfg.a_number, log_file=cfg.log_file)
+
+        try:
+            cfg.validate()
+        except Exception as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+
+        print(
+            "Running live smoke test with .env config "
+            f"(attempts={cfg.attempts_per_run}, headless={cfg.headless}, dry_run=True)"
+        )
+        summary = execute_run(cfg, verbose_console=False)
+        print(f"Live smoke test complete: best_state={summary.best_state.value}")
+        if summary.best_state == ResultState.ERROR:
+            return 1
+        return 0
+
     from findICE.classification import classify_page_text
 
     fixture_dir = (
@@ -140,6 +190,13 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
     )
 
     configure_logging(level=logging.INFO)
+
+    expected_states: dict[str, ResultState] = {
+        "zero_result": ResultState.ZERO_RESULT,
+        "likely_positive": ResultState.LIKELY_POSITIVE,
+        "ambiguous": ResultState.AMBIGUOUS_REVIEW,
+        "bot_blocked": ResultState.BOT_CHALLENGE_OR_BLOCKED,
+    }
 
     txt_files = sorted(fixture_dir.glob("*.txt"))
     if not txt_files:
@@ -151,11 +208,25 @@ def cmd_smoke_test(args: argparse.Namespace) -> int:
     for fpath in txt_files:
         text = fpath.read_text(encoding="utf-8")
         state = classify_page_text(text)
-        print(f"  {fpath.name:40s}  →  {state.value}")
+        expected = expected_states.get(fpath.stem)
+        if expected is None:
+            print(f"  {fpath.name:40s}  ->  {state.value} (no expectation)")
+            continue
+        if state == expected:
+            print(f"  {fpath.name:40s}  ->  PASS ({state.value})")
+        else:
+            all_passed = False
+            print(
+                f"  {fpath.name:40s}  ->  FAIL "
+                f"(expected={expected.value}, got={state.value})"
+            )
 
     if all_passed:
-        print("Smoke test complete.")
-    return 0
+        print("Smoke test complete: all fixture expectations passed.")
+        return 0
+
+    print("Smoke test failed: one or more fixtures did not match expectations.", file=sys.stderr)
+    return 1
 
 
 def cmd_print_config(args: argparse.Namespace) -> int:

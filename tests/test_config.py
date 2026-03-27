@@ -96,8 +96,14 @@ class TestLoadConfigFromEnv:
         cfg = load_config(override_a_number="999999999")
         assert cfg.a_number == "999999999"
 
+    def test_override_attempts_zero_is_respected(self, monkeypatch):
+        monkeypatch.setenv("ATTEMPTS_PER_RUN", "4")
+        cfg = load_config(override_attempts=0)
+        assert cfg.attempts_per_run == 0
+
     def test_headless_default_true(self, monkeypatch):
-        monkeypatch.delenv("HEADLESS", raising=False)
+        # Keep HEADLESS explicitly empty so local .env files cannot override it.
+        monkeypatch.setenv("HEADLESS", "")
         cfg = load_config()
         assert cfg.headless is True
 
