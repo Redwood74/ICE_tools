@@ -26,6 +26,8 @@ from findICE.selectors import (
     RESULT_CONTAINER,
     SEARCH_BUTTON,
     SEARCH_RESULT_TIMEOUT_MS,
+    log_selector_health,
+    reset_selector_health,
     resolve_locator,
 )
 
@@ -596,6 +598,7 @@ def run_with_retries(
     from playwright.sync_api import sync_playwright
 
     results: list[SearchResult] = []
+    reset_selector_health()
 
     with sync_playwright() as pw:
         for i in range(1, attempts + 1):
@@ -640,4 +643,5 @@ def run_with_retries(
                 )
                 break
 
+    log_selector_health()
     return results

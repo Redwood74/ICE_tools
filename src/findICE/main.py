@@ -14,7 +14,12 @@ import logging
 import sys
 from datetime import datetime, timezone
 
-from findICE.artifacts import generate_run_id, make_run_dir, save_run_summary
+from findICE.artifacts import (
+    generate_html_report,
+    generate_run_id,
+    make_run_dir,
+    save_run_summary,
+)
 from findICE.classification import best_state_from_run
 from findICE.config import AppConfig
 from findICE.exceptions import BotChallengeError
@@ -116,6 +121,7 @@ def execute_run(
     def _persist() -> None:
         """Save run summary and record run state – called on every exit path."""
         save_run_summary(summary, run_dir / "run_summary.json")
+        generate_html_report(summary, run_dir)
         content_hash = summary.best_result.content_hash if summary.best_result else None
         state_store.record_run(
             summary.to_dict(),

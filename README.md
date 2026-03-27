@@ -1,5 +1,7 @@
 # ICEpicks
 
+[🇪🇸 Leer en español](README.es.md)
+
 **ICEpicks** is a local automation utility that monitors the
 [ICE Online Detainee Locator](https://locator.ice.gov/odls/#/index) for a
 specific person by alien registration number (A-number) and country of origin.
@@ -95,6 +97,9 @@ See [`.env.example`](.env.example) for the full list.
 ## CLI usage
 
 ```powershell
+# Interactive setup wizard — creates/updates .env
+findice setup
+
 # Run a check (uses .env config)
 findice check-once
 
@@ -125,6 +130,9 @@ findice smoke-test
 
 # Run live smoke test using .env (forced dry-run, no Teams message)
 findice smoke-test --live
+
+# Run batch mode for multiple people (uses people.yml)
+findice check-batch --dry-run
 ```
 
 ---
@@ -136,6 +144,9 @@ Recommended: run `check-once` every **20 minutes** via Windows Task Scheduler.
 See [`docs/windows_task_scheduler.md`](docs/windows_task_scheduler.md) for
 step-by-step setup. The helper script [`scripts/run_check.ps1`](scripts/run_check.ps1)
 is suitable for use as the Task Scheduler action.
+
+Cross-platform scheduling (cron, launchd, Docker) is documented in
+[`docs/scheduling.md`](docs/scheduling.md).
 
 > Do not run more frequently than every 10 minutes; the ICE site may rate-limit
 > or block requests. Finite scheduler-driven runs are safer than a forever loop.
@@ -177,11 +188,12 @@ page text. The same record will not re-notify until the content changes.
 
 - ICEpicks depends entirely on the ICE locator site structure. If ICE changes
   the site DOM, selectors may need updating (see
-  [`src/findICE/selectors.py`](src/findICE/selectors.py)).
+  [`src/findICE/selectors.py`](src/findICE/selectors.py)). Selector
+  self-healing will log warnings when heuristic fallbacks are used.
 - A `LIKELY_POSITIVE` result must be manually verified by an attorney or
   qualified legal representative.
-- The tool does not support batch (multi-person) searches in v1.
 - No cloud infrastructure is required or included.
+- Docker deployment is available — see [`docs/docker.md`](docs/docker.md).
 
 ---
 
