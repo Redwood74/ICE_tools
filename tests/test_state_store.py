@@ -53,9 +53,9 @@ class TestStateStore:
         assert store2.is_new_positive(h) is False
 
     def test_recent_hashes_window(self, store: StateStore):
-        from findICE.state_store import RECENT_HASH_WINDOW
+        from findICE.state_store import MAX_RECENT_HASHES
 
-        hashes = [f"hash{i:040d}" for i in range(RECENT_HASH_WINDOW + 5)]
+        hashes = [f"hash{i:040d}" for i in range(MAX_RECENT_HASHES + 5)]
         for h in hashes:
             store.record_positive_sent(h)
 

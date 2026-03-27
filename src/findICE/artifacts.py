@@ -20,6 +20,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import stat
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -31,6 +34,21 @@ if TYPE_CHECKING:
     from playwright.sync_api import Page
 
 logger = logging.getLogger(__name__)
+
+_IS_WINDOWS = sys.platform == "win32"
+
+
+def _restrict_file_permissions(path: Path) -> None:
+    """Best-effort owner-only read/write on saved artifact files."""
+    try:
+        if _IS_WINDOWS:
+            # On Windows without admin, os.chmod is limited.
+            # Remove group/other read bits as much as Python allows.
+            os.chmod(str(path), stat.S_IRUSR | stat.S_IWUSR)
+        else:
+            os.chmod(str(path), 0o600)
+    except OSError as exc:
+        logger.debug("Could not restrict permissions on %s: %s", path, exc)
 
 
 def _ensure_dir(path: Path) -> Path:
@@ -49,6 +67,7 @@ def save_screenshot(page: Page, path: Path) -> None:
     """Save a full-page screenshot to *path*."""
     try:
         page.screenshot(path=str(path), full_page=True)
+        _restrict_file_permissions(path)
         logger.debug("Screenshot saved: %s", path)
     except Exception as exc:
         logger.warning("Screenshot failed: %s", exc)
@@ -60,6 +79,7 @@ def save_html(page: Page, path: Path) -> None:
     try:
         html = page.content()
         path.write_text(html, encoding="utf-8")
+        _restrict_file_permissions(path)
         logger.debug("HTML saved: %s", path)
     except Exception as exc:
         logger.warning("HTML save failed: %s", exc)
@@ -70,6 +90,7 @@ def save_text(text: str, path: Path) -> None:
     """Save extracted page text to *path*."""
     try:
         path.write_text(text, encoding="utf-8")
+        _restrict_file_permissions(path)
         logger.debug("Text saved: %s", path)
     except Exception as exc:
         logger.warning("Text save failed: %s", exc)
@@ -81,6 +102,7 @@ def save_run_summary(summary: RunSummary, path: Path) -> None:
     try:
         data = summary.to_dict()
         path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+        _restrict_file_permissions(path)
         logger.debug("Run summary saved: %s", path)
     except Exception as exc:
         logger.warning("Run summary save failed: %s", exc)

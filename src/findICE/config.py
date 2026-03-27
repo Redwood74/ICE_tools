@@ -57,7 +57,9 @@ class AppConfig:
 
     # --- Artifact / state paths ---
     artifact_base_dir: Path = field(default_factory=lambda: Path("artifacts"))
-    state_file: Path = field(default_factory=lambda: Path("state", "findice_state.json"))
+    state_file: Path = field(
+        default_factory=lambda: Path("state", "findice_state.json")
+    )
 
     # --- Logging ---
     log_level: str = "DEBUG"
@@ -65,6 +67,11 @@ class AppConfig:
 
     # --- Keyring ---
     use_keyring: bool = False
+
+    # --- Batch / multi-person ---
+    people_file: Path | None = None
+    inter_person_delay_seconds: float = 10.0
+    timeline_retention_hours: float = 24.0
 
     # ---------------------------------------------------------------------------
     # Derived / computed properties
@@ -74,6 +81,7 @@ class AppConfig:
     def a_number_masked(self) -> str:
         """A-number with all-but-last-two digits replaced with *."""
         from findICE.logging_utils import mask_a_number
+
         return mask_a_number(self.a_number)
 
     @property
@@ -145,6 +153,7 @@ def _keyring_get(key: str) -> str | None:
     """Try to retrieve a secret from keyring (returns None if unavailable)."""
     try:
         import keyring  # type: ignore
+
         value = keyring.get_password(KEYRING_SERVICE, key)
         return value
     except Exception:
@@ -172,7 +181,11 @@ def load_config(
     """
     _load_dotenv()
 
-    use_keyring = os.getenv("FINDICE_USE_KEYRING", "false").lower() in ("1", "true", "yes")
+    use_keyring = os.getenv("FINDICE_USE_KEYRING", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
 
     cfg = AppConfig(
         a_number=(
@@ -212,6 +225,15 @@ def load_config(
         log_level=(_get_value("LOG_LEVEL") or "DEBUG").upper(),
         log_file=_get_value("LOG_FILE") or None,
         use_keyring=use_keyring,
+        people_file=(
+            Path(_get_value("PEOPLE_FILE")) if _get_value("PEOPLE_FILE") else None
+        ),
+        inter_person_delay_seconds=float(
+            _get_value("INTER_PERSON_DELAY_SECONDS") or "10.0"
+        ),
+        timeline_retention_hours=float(
+            _get_value("TIMELINE_RETENTION_HOURS") or "24.0"
+        ),
     )
 
     return cfg

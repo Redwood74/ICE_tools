@@ -51,7 +51,10 @@ def execute_run(
     config.log_summary()
 
     run_dir = make_run_dir(config.artifact_base_dir, run_id)
-    state_store = StateStore(config.state_file)
+    state_store = StateStore(
+        config.state_file,
+        retention_hours=config.timeline_retention_hours,
+    )
     notifiers = build_notifier(
         webhook_url=config.teams_webhook_url,
         dry_run=config.dry_run,
@@ -85,7 +88,11 @@ def execute_run(
         logger.error("Unexpected error during run: %s", exc)
         summary.best_state = ResultState.ERROR
         summary.completed_at = datetime.now(timezone.utc)
-        state_store.record_run(summary.to_dict())
+        state_store.record_run(
+            summary.to_dict(),
+            run_id=run_id,
+            state_value=summary.best_state.value,
+        )
         return summary
 
     summary.all_states = [r.state for r in results]
@@ -109,7 +116,15 @@ def execute_run(
     def _persist() -> None:
         """Save run summary and record run state – called on every exit path."""
         save_run_summary(summary, run_dir / "run_summary.json")
-        state_store.record_run(summary.to_dict())
+        content_hash = summary.best_result.content_hash if summary.best_result else None
+        state_store.record_run(
+            summary.to_dict(),
+            run_id=run_id,
+            state_value=summary.best_state.value,
+            content_hash=content_hash,
+        )
+        # Auto-purge old artifacts outside the retention window
+        state_store.purge_old_artifacts(config.artifact_base_dir)
 
     if summary.best_state == ResultState.BOT_CHALLENGE_OR_BLOCKED:
         logger.error(
@@ -158,7 +173,9 @@ def execute_run(
         logger.info("ZERO_RESULT across all attempts – no notification sent")
 
     elif summary.best_state == ResultState.ERROR:
-        logger.warning("All attempts resulted in ERROR – check artifacts at %s", run_dir)
+        logger.warning(
+            "All attempts resulted in ERROR – check artifacts at %s", run_dir
+        )
 
     _persist()
 

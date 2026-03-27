@@ -60,8 +60,12 @@ class SearchResult:
     def content_hash(self) -> str:
         """Stable SHA-256 hash of the normalised raw text, for deduplication."""
         normalised = (
-            f"{self.raw_text}\n{self.detail_page_text}\n{self.facility_more_information_text}"
-        ).strip().lower()
+            (
+                f"{self.raw_text}\n{self.detail_page_text}\n{self.facility_more_information_text}"
+            )
+            .strip()
+            .lower()
+        )
         return hashlib.sha256(normalised.encode()).hexdigest()
 
     @property
@@ -84,38 +88,66 @@ class RunSummary:
     completed_at: datetime | None = None
     notified: bool = False
     artifact_dir: str | None = None
+    person_label: str | None = None
 
     def to_dict(self) -> dict:
         return {
+            "person_label": self.person_label,
             "a_number_masked": self.a_number_masked,
             "country": self.country,
             "attempts_total": self.attempts_total,
             "best_state": self.best_state.value,
             "all_states": [s.value for s in self.all_states],
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "notified": self.notified,
             "artifact_dir": self.artifact_dir,
-            "best_result_hash": self.best_result.content_hash if self.best_result else None,
-            "best_result_hash_prefix": self.best_result.hash_prefix if self.best_result else None,
-            "detention_facility": self.best_result.detention_facility if self.best_result else None,
-            "facility_address": self.best_result.facility_address if self.best_result else None,
-            "visitor_information": self.best_result.visitor_information if self.best_result else None,
-            "ero_office_name": self.best_result.ero_office_name if self.best_result else None,
-            "ero_office_phone": self.best_result.ero_office_phone if self.best_result else None,
-            "detail_page_url": self.best_result.detail_page_url if self.best_result else None,
+            "best_result_hash": (
+                self.best_result.content_hash if self.best_result else None
+            ),
+            "best_result_hash_prefix": (
+                self.best_result.hash_prefix if self.best_result else None
+            ),
+            "detention_facility": (
+                self.best_result.detention_facility if self.best_result else None
+            ),
+            "facility_address": (
+                self.best_result.facility_address if self.best_result else None
+            ),
+            "visitor_information": (
+                self.best_result.visitor_information if self.best_result else None
+            ),
+            "ero_office_name": (
+                self.best_result.ero_office_name if self.best_result else None
+            ),
+            "ero_office_phone": (
+                self.best_result.ero_office_phone if self.best_result else None
+            ),
+            "detail_page_url": (
+                self.best_result.detail_page_url if self.best_result else None
+            ),
             "facility_more_information_url": (
-                self.best_result.facility_more_information_url if self.best_result else None
+                self.best_result.facility_more_information_url
+                if self.best_result
+                else None
             ),
             "facility_more_information_title": (
-                self.best_result.facility_more_information_title if self.best_result else None
+                self.best_result.facility_more_information_title
+                if self.best_result
+                else None
             ),
-            "facility_tabs": self.best_result.facility_tabs if self.best_result else None,
+            "facility_tabs": (
+                self.best_result.facility_tabs if self.best_result else None
+            ),
             "facility_tab_details": (
                 self.best_result.facility_tab_details if self.best_result else None
             ),
             "facility_contacting_a_detainee": (
-                self.best_result.facility_contacting_a_detainee if self.best_result else None
+                self.best_result.facility_contacting_a_detainee
+                if self.best_result
+                else None
             ),
             "facility_legal_and_case_information": (
                 self.best_result.facility_legal_and_case_information
@@ -123,7 +155,9 @@ class RunSummary:
                 else None
             ),
             "facility_hours_of_visitation": (
-                self.best_result.facility_hours_of_visitation if self.best_result else None
+                self.best_result.facility_hours_of_visitation
+                if self.best_result
+                else None
             ),
             "facility_sending_items_to_detainees": (
                 self.best_result.facility_sending_items_to_detainees
