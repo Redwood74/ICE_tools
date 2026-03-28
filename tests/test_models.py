@@ -7,12 +7,8 @@ from findICE.models import ResultState, RunSummary, SearchResult
 
 class TestContentHash:
     def test_same_text_same_hash(self):
-        r1 = SearchResult(
-            state=ResultState.LIKELY_POSITIVE, raw_text="some result text"
-        )
-        r2 = SearchResult(
-            state=ResultState.LIKELY_POSITIVE, raw_text="some result text"
-        )
+        r1 = SearchResult(state=ResultState.LIKELY_POSITIVE, raw_text="some result text")
+        r2 = SearchResult(state=ResultState.LIKELY_POSITIVE, raw_text="some result text")
         assert r1.content_hash == r2.content_hash
 
     def test_different_text_different_hash(self):
@@ -106,7 +102,6 @@ class TestRunSummary:
         assert data["facility_more_information_title"] == "Facility Page"
         assert data["facility_tabs"]["Contacting a Detainee"] == "Call the facility"
         assert (
-            data["facility_tab_details"]["contacting_a_detainee"]["phones"][0]
-            == "(555) 000-1111"
+            data["facility_tab_details"]["contacting_a_detainee"]["phones"][0] == "(555) 000-1111"
         )
         assert data["facility_contacting_a_detainee"] == "Call the facility"
