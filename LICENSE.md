@@ -41,7 +41,9 @@ Upon verification and continuous compliance, the following organizations receive
 (b) Federal Defender Organizations;
 (c) Court-appointed counsel operating under state or municipal authority;
 (d) Legal aid organizations embedded in or funded by municipal governments;
-(e) Nonprofit legal services providers representing immigrants.
+(e) Nonprofit legal services providers representing immigrants;
+(f) Nonprofit organizations providing assistance to ICE detainees; and 
+(g) Other nonprofit organizations with a mission aligned with the Software's purpose.
 
 **Verification Method.** Eligibility requires responding from an institutional email address and providing a link to an official website. Licensor may issue a confirmation and a **License Reference ID**. Failure to verify within **7 days** voids the request. See `FAQ.md`.
 
