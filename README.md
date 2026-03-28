@@ -1,5 +1,7 @@
 # ICEpicks
 
+<img width="1536" height="1024" alt="Designer (6)" src="https://github.com/user-attachments/assets/0246373c-ab44-481b-82c0-3787c4026b77" />
+
 [![CI](https://github.com/Redwood74/ICE_tools/actions/workflows/ci.yml/badge.svg)](https://github.com/Redwood74/ICE_tools/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: IAPL](https://img.shields.io/badge/license-IAPL--1.0-green.svg)](LICENSE.md)
