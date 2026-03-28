@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ICEpicks setup for macOS — creates venv, installs deps, registers launchd agent.
-# Run from the ICE_tools repository root.
+# Run from the ICEpicks repository root.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

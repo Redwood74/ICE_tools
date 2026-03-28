@@ -77,5 +77,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `scripts/setup_windows.ps1`, `scripts/run_check.ps1`.
 - GitHub Actions workflow for lint and test.
 
-[Unreleased]: https://github.com/Redwood74/ICE_tools/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Redwood74/ICE_tools/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Redwood74/ICEpicks/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Redwood74/ICEpicks/releases/tag/v0.1.0

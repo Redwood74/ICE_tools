@@ -49,7 +49,7 @@ By completing verification, you confirm that:
      misrepresentation.
 
 Please review the full license at:
-  https://github.com/Redwood74/ICE_tools/blob/main/LICENSE.md
+  https://github.com/Redwood74/ICEpicks/blob/main/LICENSE.md
 
 If you did not request this verification, please ignore this email or
 reply to notify us.
@@ -94,9 +94,9 @@ KEY REMINDERS:
   - See LICENSE.md for the full terms.
 
 Resources:
-  License:     https://github.com/Redwood74/ICE_tools/blob/main/LICENSE.md
-  FAQ:         https://github.com/Redwood74/ICE_tools/blob/main/FAQ.md
-  Trademarks:  https://github.com/Redwood74/ICE_tools/blob/main/TRADEMARKS.md
+  License:     https://github.com/Redwood74/ICEpicks/blob/main/LICENSE.md
+  FAQ:         https://github.com/Redwood74/ICEpicks/blob/main/FAQ.md
+  Trademarks:  https://github.com/Redwood74/ICEpicks/blob/main/TRADEMARKS.md
 
 Thank you for the work you do.
 

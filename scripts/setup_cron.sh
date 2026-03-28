@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ICEpicks setup for Linux — creates venv, installs deps, registers cron.
-# Run from the ICE_tools repository root.
+# Run from the ICEpicks repository root.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

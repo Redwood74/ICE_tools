@@ -8,7 +8,7 @@
     Designed to be safe for repeated automated execution.
 
 .NOTES
-    Run from the ICE_tools repository root.
+    Run from the ICEpicks repository root.
     Exit code 3 means bot challenge; handled gracefully.
 #>
 

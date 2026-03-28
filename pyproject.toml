@@ -42,10 +42,10 @@ dev = [
 findice = "findICE.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/Redwood74/ICE_tools"
-Repository = "https://github.com/Redwood74/ICE_tools"
-"Bug Tracker" = "https://github.com/Redwood74/ICE_tools/issues"
-Documentation = "https://github.com/Redwood74/ICE_tools#readme"
+Homepage = "https://github.com/Redwood74/ICEpicks"
+Repository = "https://github.com/Redwood74/ICEpicks"
+"Bug Tracker" = "https://github.com/Redwood74/ICEpicks/issues"
+Documentation = "https://github.com/Redwood74/ICEpicks#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]

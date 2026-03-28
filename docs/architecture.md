@@ -166,7 +166,7 @@ Not implemented in v1. The clean approach would be:
 ## Directory layout
 
 ```
-ICE_tools/
+ICEpicks/
 ├── src/
 │   └── findICE/
 │       ├── __init__.py

@@ -2,7 +2,7 @@
 
 <img width="1536" height="1024" alt="Designer (6)" src="https://github.com/user-attachments/assets/0246373c-ab44-481b-82c0-3787c4026b77" />
 
-[![CI](https://github.com/Redwood74/ICE_tools/actions/workflows/ci.yml/badge.svg)](https://github.com/Redwood74/ICE_tools/actions/workflows/ci.yml)
+[![CI](https://github.com/Redwood74/ICEpicks/actions/workflows/ci.yml/badge.svg)](https://github.com/Redwood74/ICEpicks/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: IAPL](https://img.shields.io/badge/license-IAPL--1.0-green.svg)](LICENSE.md)
 
@@ -27,7 +27,7 @@ installer, and answer three questions.
 ### Windows
 
 1. **Download:** go to
-   [Code → Download ZIP](https://github.com/Redwood74/ICE_tools/archive/refs/heads/main.zip)
+  [Code → Download ZIP](https://github.com/Redwood74/ICEpicks/archive/refs/heads/main.zip)
    and save the file.
 2. **Extract:** right-click the ZIP → **Extract All** → choose a folder
    (e.g. `C:\ICEpicks`).
@@ -97,8 +97,8 @@ the chance of a false negative on any given check.
 
 ```powershell
 # 1. Clone the repo
-git clone https://github.com/Redwood74/ICE_tools.git
-cd ICE_tools
+git clone https://github.com/Redwood74/ICEpicks.git
+cd ICEpicks
 
 # 2. Create and activate a virtualenv
 python -m venv .venv

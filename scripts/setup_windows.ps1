@@ -8,7 +8,7 @@
     Playwright Chromium browser, and sets up a Task Scheduler task.
 
 .NOTES
-    Run from the ICE_tools repository root with PowerShell 5.1 or later.
+    Run from the ICEpicks repository root with PowerShell 5.1 or later.
     Does NOT require admin rights.
 #>
 

@@ -38,8 +38,8 @@ Please **do not** contribute features that:
 ## Development setup
 
 ```bash
-git clone https://github.com/Redwood74/ICE_tools.git
-cd ICE_tools
+git clone https://github.com/Redwood74/ICEpicks.git
+cd ICEpicks
 python -m venv .venv
 source .venv/bin/activate          # Linux/macOS
 # .venv\Scripts\Activate.ps1      # Windows PowerShell

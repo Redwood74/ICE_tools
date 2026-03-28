@@ -61,7 +61,7 @@ registers a cron job.
 crontab -e
 
 # Add this line (runs every 20 minutes):
-*/20 * * * * /path/to/ICE_tools/scripts/run_check.sh >> /path/to/ICE_tools/icepicks_cron.log 2>&1
+*/20 * * * * /path/to/ICEpicks/scripts/run_check.sh >> /path/to/ICEpicks/icepicks_cron.log 2>&1
 ```
 
 Make sure `run_check.sh` is executable:
@@ -97,12 +97,12 @@ registers a LaunchAgent that runs every 20 minutes.
     <string>com.icepicks.check</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/path/to/ICE_tools/scripts/run_check.sh</string>
+        <string>/path/to/ICEpicks/scripts/run_check.sh</string>
     </array>
     <key>StartInterval</key>
     <integer>1200</integer>
     <key>WorkingDirectory</key>
-    <string>/path/to/ICE_tools</string>
+    <string>/path/to/ICEpicks</string>
 </dict>
 </plist>
 ```

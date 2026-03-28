@@ -57,8 +57,8 @@ de un falso negativo en cualquier verificación.
 
 ```powershell
 # 1. Clonar el repositorio
-git clone https://github.com/Redwood74/ICE_tools.git
-cd ICE_tools
+git clone https://github.com/Redwood74/ICEpicks.git
+cd ICEpicks
 
 # 2. Crear y activar un entorno virtual
 python -m venv .venv
