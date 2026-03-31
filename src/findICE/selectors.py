@@ -141,6 +141,9 @@ DETENTION_FACILITY_LINK = SelectorGroup(
 ZERO_RESULT_PHRASES: list[str] = [
     "0 search results",
     "0 results",
+    "zero (0) matching records",
+    "returned zero",
+    "0 matching records",
     "no records found",
     "not found",
     "no match",
