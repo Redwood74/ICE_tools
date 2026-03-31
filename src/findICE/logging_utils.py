@@ -116,9 +116,12 @@ def configure_logging(
     root.setLevel(level)
 
     if not _HANDLER_INSTALLED:
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
-        root.addHandler(handler)
+        # Under pythonw.exe sys.stderr is None; skip the stream handler in
+        # that case so we don't crash on the very first log call.
+        if sys.stderr is not None:
+            handler = logging.StreamHandler(sys.stderr)
+            handler.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
+            root.addHandler(handler)
         _HANDLER_INSTALLED = True
 
     if log_file:

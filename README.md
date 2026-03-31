@@ -187,9 +187,14 @@ findice check-batch --dry-run
 
 Recommended: run `check-once` every **20 minutes** via Windows Task Scheduler.
 
+The installer registers a scheduled task that uses `findice-bg.exe` — a
+**windowless** entry point backed by `pythonw.exe`. No terminal window will
+pop up during scheduled checks. If you need to troubleshoot, the interactive
+console entry point (`findice check-once`) and the PowerShell runner
+([`scripts/run_check.ps1`](scripts/run_check.ps1)) are still available.
+
 See [`docs/windows_task_scheduler.md`](docs/windows_task_scheduler.md) for
-step-by-step setup. The helper script [`scripts/run_check.ps1`](scripts/run_check.ps1)
-is suitable for use as the Task Scheduler action.
+step-by-step setup.
 
 Cross-platform scheduling (cron, launchd, Docker) is documented in
 [`docs/scheduling.md`](docs/scheduling.md).
@@ -283,6 +288,21 @@ This tool **must not** be used to:
 
 Any use that harms the people this tool is designed to help is a violation of
 the license and morally prohibited.
+
+---
+
+## Pipeline flowchart
+
+An interactive flowchart showing the full logical pipeline — from CLI
+invocation through browser automation, classification, and notification — is
+available in [`docs/pipeline_flowchart.html`](docs/pipeline_flowchart.html).
+
+Open it in any browser to view four diagrams:
+
+1. **Top-level pipeline** – CLI → config → orchestration → notification → persistence
+2. **Browser automation** – stealth launch → form fill → result extraction → facility details
+3. **Classification** – conservative phrase-matching: bot → zero → error page → positive → ambiguous
+4. **Selector resolution** – layered fallback: ARIA → placeholder → role → CSS → heuristic
 
 ---
 

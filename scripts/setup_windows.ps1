@@ -76,10 +76,10 @@ Write-Host "`n[Optional] Registering Task Scheduler task..."
 $registerTask = Read-Host "Register ICEpicks_check in Task Scheduler? (y/N)"
 if ($registerTask -eq "y" -or $registerTask -eq "Y") {
     $taskName = "ICEpicks_check"
-    $scriptPath = Join-Path $repoRoot "scripts\run_check.ps1"
+    $findiceBg = Join-Path $repoRoot ".venv\Scripts\findice-bg.exe"
     $action = New-ScheduledTaskAction `
-        -Execute "powershell.exe" `
-        -Argument "-ExecutionPolicy Bypass -File `"$scriptPath`"" `
+        -Execute $findiceBg `
+        -Argument "check-once" `
         -WorkingDirectory $repoRoot
 
     $trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Minutes 20) -Once -At (Get-Date)

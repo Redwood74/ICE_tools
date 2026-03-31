@@ -55,14 +55,14 @@ class _MockCountrySelect:
 
 
 class TestSelectCountryOption:
-    def test_uses_direct_value_when_available(self):
-        sel = _MockCountrySelect(options=["Chile"], accepted={("value", "CHILE")})
+    def test_selects_by_label_scan(self):
+        sel = _MockCountrySelect(options=["Chile"], accepted={("label", "Chile")})
         _select_country_option(sel, "CHILE", 10_000)
-        assert sel.calls[0] == {"value": "CHILE"}
+        assert sel.calls == [{"label": "Chile"}]
 
     def test_falls_back_to_case_insensitive_option_scan(self):
         sel = _MockCountrySelect(options=["Chile"], accepted={("label", "Chile")})
-        _select_country_option(sel, "CHILE", 10_000)
+        _select_country_option(sel, "chile", 10_000)
         assert {"label": "Chile"} in sel.calls
 
     def test_raises_when_country_not_found(self):

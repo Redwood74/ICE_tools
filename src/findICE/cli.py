@@ -561,5 +561,57 @@ def main(argv: list[str] | None = None) -> None:
     sys.exit(handler(args))
 
 
+def main_background() -> None:
+    """Windowless entry point for Task Scheduler (``findice-bg.exe``).
+
+    This wraps :func:`main` with safeguards needed when running under
+    ``pythonw.exe`` (GUI subsystem, no console):
+
+    * Forces ``LOG_FILE`` so output is never lost.
+    * Redirects stdout/stderr to the log file.
+    * Catches **all** exceptions — ``pythonw.exe`` silently swallows
+      unhandled errors without any traceback.
+    """
+    import io
+    import os
+    import traceback
+
+    # Ensure a log file exists even if .env forgot to set one.
+    if not os.environ.get("LOG_FILE"):
+        os.environ["LOG_FILE"] = "ICEpicks.log"
+
+    log_path = os.environ["LOG_FILE"]
+
+    # pythonw.exe sets sys.stdout / sys.stderr to None.  Redirect them to
+    # the log file so stray print() calls and library warnings survive.
+    try:
+        log_stream = open(log_path, "a", encoding="utf-8")  # noqa: SIM115
+        if sys.stdout is None:
+            sys.stdout = log_stream
+        if sys.stderr is None:
+            sys.stderr = log_stream
+    except OSError:
+        # If we can't open the log file, create a no-op text stream so
+        # nothing crashes on print().
+        sys.stdout = sys.stdout or io.StringIO()
+        sys.stderr = sys.stderr or io.StringIO()
+
+    try:
+        main(["check-once"])
+    except SystemExit:
+        pass  # normal exit via sys.exit()
+    except Exception:
+        # Last-resort logging: write directly to the log file.
+        try:
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"\n{'=' * 72}\n")
+                f.write("UNHANDLED EXCEPTION in findice-bg (main_background)\n")
+                traceback.print_exc(file=f)
+                f.write(f"{'=' * 72}\n")
+        except OSError:
+            pass  # nothing we can do
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ICEpicks – Pipeline Flowchart</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8f9fa; margin: 0; padding: 20px; }
+  h1 { text-align: center; color: #1a3a5c; }
+  h2 { color: #1a3a5c; margin-top: 40px; border-bottom: 2px solid #1a3a5c; padding-bottom: 6px; }
+  .diagram-container { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; margin: 20px auto; max-width: 1200px; overflow-x: auto; }
+  .mermaid { text-align: center; }
+  p.caption { text-align: center; color: #555; font-style: italic; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>🔎 ICEpicks – Logical Pipeline Flowchart</h1>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>1. Top-Level: CLI → Orchestration → Output</h2>
+<!-- ════════════════════════════════════════════════════ -->
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+    CLI["<b>CLI Entry Point</b><br/>findice.exe &lt;command&gt;"]
+    CLI --> CMD{Command?}
+
+    CMD -->|check-once| CFG["<b>Load Config</b><br/>config.py: load_config()<br/>.env → env vars → keyring"]
+    CMD -->|check-batch| BCFG["<b>Load Config + People YAML</b><br/>batch.py: load_people()"]
+    CMD -->|setup| SETUP["<b>Interactive Setup Wizard</b><br/>Prompts → writes .env file"]
+    CMD -->|smoke-test| SMOKE["<b>Classify Fixtures</b><br/>(or --live → execute_run)"]
+    CMD -->|print-config| PCFG["Print redacted config"]
+    CMD -->|verify-webhook| VWH["Send test Teams message"]
+
+    CFG --> VALIDATE{"Config valid?<br/>A-Number 8-9 digits?<br/>Country non-empty?"}
+    VALIDATE -->|No| ERR_CFG["❌ ConfigError<br/>Exit code 1"]
+    VALIDATE -->|Yes| RUN["<b>execute_run()</b><br/>main.py"]
+
+    BCFG --> BVAL{"Config valid?"}
+    BVAL -->|Yes| BATCH["<b>execute_batch()</b><br/>FOR each person in YAML:<br/>execute_run() + delay"]
+    BVAL -->|No| ERR_CFG
+
+    BATCH --> RUN
+
+    RUN --> RUNID["Generate run_id<br/>Create artifacts/{run_id}/"]
+    RUNID --> STATE_LOAD["<b>Load State</b><br/>state_store.py: StateStore()<br/>Read findice_state.json"]
+    STATE_LOAD --> NOTIFIER["<b>Build Notifiers</b><br/>TeamsNotifier / ConsoleNotifier<br/>/ DryRunNotifier"]
+    NOTIFIER --> RETRY["<b>run_with_retries()</b><br/>ice_client.py"]
+
+    RETRY --> BEST["<b>best_state_from_run()</b><br/>Pick most informative state<br/>across all attempts"]
+
+    BEST --> BRANCH{Best state?}
+
+    BRANCH -->|LIKELY_POSITIVE| DEDUP{"New result?<br/>Hash not in<br/>recent_hashes?"}
+    DEDUP -->|Yes| NOTIFY["<b>Dispatch Notification</b><br/>Teams webhook / console"]
+    DEDUP -->|Already seen| SKIP["Log: duplicate,<br/>skip notification"]
+    NOTIFY --> RECORD["Record hash in state<br/>Mark notified=True"]
+
+    BRANCH -->|AMBIGUOUS_REVIEW| AMB["⚠️ Log warning<br/>Save artifacts for<br/>manual inspection"]
+    BRANCH -->|ZERO_RESULT| ZERO["ℹ️ Log: no match found<br/>No notification"]
+    BRANCH -->|ERROR| ERRST["⚠️ Log warning"]
+    BRANCH -->|BOT_CHALLENGE| BOT["🚫 Raise BotChallengeError<br/>Exit code 3"]
+
+    RECORD --> PERSIST
+    SKIP --> PERSIST
+    AMB --> PERSIST
+    ZERO --> PERSIST
+    ERRST --> PERSIST
+
+    PERSIST["<b>Persist</b><br/>Save run_summary.json<br/>Generate report.html<br/>Record run in state<br/>Purge old artifacts"]
+    PERSIST --> DONE["✅ Return RunSummary"]
+
+    style CLI fill:#1a3a5c,color:#fff
+    style RUN fill:#2e7d32,color:#fff
+    style RETRY fill:#1565c0,color:#fff
+    style NOTIFY fill:#e65100,color:#fff
+    style BOT fill:#b71c1c,color:#fff
+    style ERR_CFG fill:#b71c1c,color:#fff
+    style DONE fill:#2e7d32,color:#fff
+</pre>
+</div>
+<p class="caption">Figure 1 – End-to-end pipeline from CLI invocation to notification and persistence</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>2. Browser Automation: run_with_retries → run_single_attempt</h2>
+<!-- ════════════════════════════════════════════════════ -->
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+    RWR["<b>run_with_retries()</b><br/>a_number, country, attempts=4"]
+    RWR --> RESET["reset_selector_health()"]
+    RESET --> PW["Start Playwright<br/>sync_playwright()"]
+    PW --> LOOP["FOR attempt 1..N"]
+
+    LOOP --> DELAY{"attempt > 1?"}
+    DELAY -->|Yes| WAIT["Sleep<br/>delay + random jitter"]
+    DELAY -->|No| ATTEMPT
+    WAIT --> ATTEMPT
+
+    ATTEMPT["<b>run_single_attempt()</b>"]
+
+    ATTEMPT --> LAUNCH["Launch Chromium<br/>--disable-blink-features=AutomationControlled<br/>--no-sandbox, --disable-infobars"]
+    LAUNCH --> CTX["Create browser context<br/>viewport 1280×900<br/>Chrome user-agent"]
+    CTX --> PAGE["new_page()"]
+    PAGE --> STEALTH["<b>Stealth().apply_stealth_sync(page)</b><br/>Patch webdriver, plugins, chrome.runtime,<br/>WebGL, languages, permissions"]
+
+    STEALTH --> NAV["page.goto(locator.ice.gov)<br/>wait_until=domcontentloaded"]
+    NAV --> SETTLE["wait_for_load_state('networkidle')<br/>+ random 1.5–3s wait<br/>+ random mouse movement"]
+
+    SETTLE --> FILL_A["<b>Fill A-Number</b><br/>resolve_locator(A_NUMBER_INPUT)<br/>click → press_sequentially(digits)<br/>40-90ms per key → press Tab"]
+    FILL_A --> FILL_C["<b>Select Country</b><br/>resolve_locator(COUNTRY_SELECT)<br/>select_option(value/label)"]
+    FILL_C --> CLICK_S["<b>Click Search</b><br/>resolve_locator(SEARCH_BUTTON)<br/>button.click()"]
+
+    CLICK_S --> WAIT_R["<b>_wait_for_result()</b><br/>Wait for #resultsPage, #detentionPage,<br/>'search results:', 'no records',<br/>'internal error', 'our apologies'<br/>timeout: 20s"]
+
+    WAIT_R --> EXTRACT["<b>Extract page text</b><br/>Result container → body fallback"]
+    EXTRACT --> CLASSIFY["<b>classify_page_text()</b><br/>→ ResultState"]
+    CLASSIFY --> SAVE_ART["Save artifacts<br/>screenshot + HTML + text"]
+
+    SAVE_ART --> FAC{"Detention<br/>facility found?"}
+    FAC -->|Yes| DETAIL["Click facility link<br/>Extract detail page<br/>(address, ERO office, phone)"]
+    DETAIL --> MORE{"More info<br/>URL available?"}
+    MORE -->|Yes| TABS["Open facility info page<br/>Click each tab<br/>Extract text, phones,<br/>emails, links"]
+    MORE -->|No| CHECK_BOT
+    TABS --> SAVE_D["Save detail + facility<br/>info artifacts"]
+    SAVE_D --> CHECK_BOT
+    FAC -->|No| CHECK_BOT
+
+    CHECK_BOT{"State ==<br/>BOT_CHALLENGE?"}
+    CHECK_BOT -->|Yes| BOT_ERR["🚫 raise BotChallengeError"]
+    CHECK_BOT -->|No| RETURN["Return SearchResult"]
+
+    RETURN --> EARLY{"State ==<br/>LIKELY_POSITIVE?"}
+    EARLY -->|Yes| STOP["Break loop early ✅"]
+    EARLY -->|No| NEXT{"More attempts?"}
+    NEXT -->|Yes| LOOP
+    NEXT -->|No| HEALTH["log_selector_health()<br/>Return all results"]
+
+    BOT_ERR --> HEALTH
+    STOP --> HEALTH
+
+    style RWR fill:#1565c0,color:#fff
+    style ATTEMPT fill:#1565c0,color:#fff
+    style STEALTH fill:#6a1b9a,color:#fff
+    style CLASSIFY fill:#e65100,color:#fff
+    style STOP fill:#2e7d32,color:#fff
+    style BOT_ERR fill:#b71c1c,color:#fff
+</pre>
+</div>
+<p class="caption">Figure 2 – Browser automation with stealth, human-like form interaction, and facility detail extraction</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>3. Page Classification Pipeline</h2>
+<!-- ════════════════════════════════════════════════════ -->
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+    INPUT["<b>classify_page_text()</b><br/>raw_text + page_title + http_status"]
+    INPUT --> EMPTY{"Text empty?"}
+    EMPTY -->|Yes| RET_ERR["Return <b>ERROR</b>"]
+
+    EMPTY -->|No| NORM["Normalise: lowercase + strip<br/>full_text = title + raw_text"]
+
+    NORM --> BOT{"Bot phrases found?<br/><i>captcha, verify you are human,<br/>access denied, forbidden,<br/>unusual traffic, rate limit...</i><br/>OR http_status ∈ {403, 429, 503}"}
+    BOT -->|Yes| RET_BOT["Return <b>BOT_CHALLENGE_OR_BLOCKED</b>"]
+
+    BOT -->|No| ZERO{"Zero-result phrases?<br/><i>0 search results, no records found,<br/>not found, no match,<br/>unable to locate</i>"}
+    ZERO -->|Yes| RET_ZERO["Return <b>ZERO_RESULT</b>"]
+
+    ZERO -->|No| AMB{"Ambiguous/error phrases?<br/><i>internal error, our apologies,<br/>an error occurred,<br/>go to locator home</i>"}
+    AMB -->|Yes| RET_AMB["Return <b>AMBIGUOUS_REVIEW</b>"]
+
+    AMB -->|No| POS{"Positive phrases ≥ 2?<br/><i>1 search result, search results:,<br/>book-in date, detainee information,<br/>current detention facility,<br/>status: in ice custody</i>"}
+    POS -->|Yes| RET_POS["Return <b>LIKELY_POSITIVE</b> ✅"]
+
+    POS -->|No| SHORT{"Text < 50 chars?"}
+    SHORT -->|Yes| RET_ERR2["Return <b>ERROR</b><br/>(incomplete page load)"]
+    SHORT -->|No| RET_AMB2["Return <b>AMBIGUOUS_REVIEW</b><br/>(content unclear)"]
+
+    style INPUT fill:#e65100,color:#fff
+    style RET_POS fill:#2e7d32,color:#fff
+    style RET_BOT fill:#b71c1c,color:#fff
+    style RET_ERR fill:#b71c1c,color:#fff
+    style RET_ERR2 fill:#b71c1c,color:#fff
+    style RET_ZERO fill:#546e7a,color:#fff
+    style RET_AMB fill:#f57f17,color:#000
+    style RET_AMB2 fill:#f57f17,color:#000
+</pre>
+</div>
+<p class="caption">Figure 3 – Conservative classification: bot → zero → error page → positive → too short → ambiguous</p>
+
+<!-- ════════════════════════════════════════════════════ -->
+<h2>4. Selector Resolution Strategy</h2>
+<!-- ════════════════════════════════════════════════════ -->
+<div class="diagram-container">
+<pre class="mermaid">
+flowchart TD
+    RESOLVE["<b>resolve_locator(page, SelectorGroup)</b>"]
+    RESOLVE --> LOOP["FOR idx, selector in candidates"]
+    LOOP --> TRY["page.locator(selector)"]
+    TRY --> COUNT{"locator.count() > 0?"}
+
+    COUNT -->|Yes| HEUR{"idx ≥ heuristic_index?"}
+    HEUR -->|No| OK["✅ Log DEBUG<br/>Return locator.first"]
+    HEUR -->|Yes| WARN["⚠️ Log WARNING<br/>'resolved via HEURISTIC fallback'<br/>Return locator.first"]
+
+    COUNT -->|No| NEXT{"More candidates?"}
+    NEXT -->|Yes| LOOP
+    NEXT -->|No| FAIL["❌ Log WARNING<br/>'No selector resolved'<br/>Return None"]
+
+    EX["Example: A_NUMBER_INPUT<br/>11 candidates"]
+    EX --> L1["[0-1] aria-label: Alien / A-Number"]
+    L1 --> L2["[2-4] placeholder: Alien / A-Number"]
+    L2 --> L3["[5] role=textbox"]
+    L3 --> L4["[6-9] name/id attributes"]
+    L4 --> L5["[10-11] 🔶 HEURISTIC:<br/>first text input / visible input"]
+
+    style RESOLVE fill:#1565c0,color:#fff
+    style OK fill:#2e7d32,color:#fff
+    style WARN fill:#f57f17,color:#000
+    style FAIL fill:#b71c1c,color:#fff
+    style L5 fill:#f57f17,color:#000
+</pre>
+</div>
+<p class="caption">Figure 4 – Layered selector fallback: ARIA → placeholder → role → CSS → heuristic</p>
+
+<script>mermaid.initialize({startOnLoad:true, theme:'default', flowchart:{curve:'basis', nodeSpacing:30, rankSpacing:40}});</script>
+</body>
+</html>

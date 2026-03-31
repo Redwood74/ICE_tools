@@ -13,6 +13,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from playwright_stealth import Stealth
+
 from findICE.classification import classify_page_text
 from findICE.exceptions import BotChallengeError
 from findICE.models import ResultState, SearchResult
@@ -50,26 +52,23 @@ _EMAIL_PATTERN = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGN
 
 
 def _select_country_option(country_sel, country: str, timeout_ms: int) -> None:
-    """Select country by value/label with case-tolerant fallback."""
-    for kwargs in (
-        {"value": country},
-        {"label": country},
-        {"label": country.upper()},
-        {"label": country.title()},
-    ):
-        try:
-            country_sel.select_option(**kwargs, timeout=timeout_ms)
-            return
-        except Exception as exc:
-            logger.debug("Country select option %s failed: %s", kwargs, exc)
-            continue
+    """Select country by scanning option labels with case-insensitive matching.
 
+    Angular generates opaque ``value`` attributes on ``<option>`` elements
+    (e.g. ``"39: Mexico"``), so matching by value is unreliable.  Instead we
+    scan the visible labels first, find the exact text, then call
+    ``select_option(label=...)`` with the canonical label.
+    """
+    target = country.strip().lower()
+
+    # Scan option labels for a case-insensitive match.
     option_locs = country_sel.locator("option")
     option_count = option_locs.count()
     for idx in range(option_count):
         label = option_locs.nth(idx).inner_text().strip()
-        if label.lower() == country.strip().lower():
+        if label.lower() == target:
             country_sel.select_option(label=label, timeout=timeout_ms)
+            logger.debug("Country selected via label scan: '%s'", label)
             return
 
     raise RuntimeError(f"Could not select country '{country}'")
@@ -421,7 +420,9 @@ def _wait_for_result(page, timeout_ms: int = SEARCH_RESULT_TIMEOUT_MS) -> None:
                     body.includes('search results:') ||
                     body.includes('no records') ||
                     body.includes('0 search results') ||
-                    body.includes('current detention facility')
+                    body.includes('current detention facility') ||
+                    body.includes('internal error') ||
+                    body.includes('our apologies')
                 );
             }""",
             timeout=timeout_ms,
@@ -467,7 +468,16 @@ def run_single_attempt(
     masked = mask_a_number(a_number)
     logger.info("Attempt %d: starting (a_number=%s)", attempt_number, masked)
 
-    browser = playwright_instance.chromium.launch(headless=headless)
+    # Suppress Chromium's automation-mode flags so reCAPTCHA v3 does not
+    # immediately classify the browser as a bot.
+    browser = playwright_instance.chromium.launch(
+        headless=headless,
+        args=[
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-infobars",
+        ],
+    )
     context = browser.new_context(
         viewport={"width": 1280, "height": 900},
         user_agent=(
@@ -487,6 +497,10 @@ def run_single_attempt(
 
     try:
         page = context.new_page()
+        # Apply playwright-stealth patches: hides navigator.webdriver, fixes
+        # chrome.runtime, plugins array, languages, WebGL vendor, and other
+        # signals that reCAPTCHA v3 uses for bot scoring.
+        Stealth().apply_stealth_sync(page)
         page.set_default_timeout(element_timeout_ms)
         page.set_default_navigation_timeout(page_load_timeout_ms)
 
@@ -496,14 +510,32 @@ def run_single_attempt(
         result.page_title = page.title()
         logger.debug("Attempt %d: page title = '%s'", attempt_number, result.page_title)
 
-        # Give SPA time to settle
+        # Give SPA time to settle and allow reCAPTCHA to initialise
         page.wait_for_load_state("networkidle", timeout=10_000)
+        page.wait_for_timeout(random.randint(1_500, 3_000))
+
+        # Simulate light human interaction before filling the form
+        page.mouse.move(random.randint(200, 600), random.randint(300, 600))
+        page.wait_for_timeout(random.randint(300, 700))
 
         # --- Fill A-number ---
+        # press_sequentially fires keydown/keypress/input/keyup per character,
+        # which Angular's DefaultValueAccessor (template-driven ngModel) requires
+        # to mark the control as dirty and register the value in the form model.
+        # Using fill() alone only fires a single synthetic input event that
+        # Angular sometimes does not recognise as a user-initiated change.
         a_input = resolve_locator(page, A_NUMBER_INPUT)
         if a_input is None:
             raise RuntimeError("Could not locate A-number input field")
-        a_input.fill(_normalise_a_number_for_form(a_number), timeout=element_timeout_ms)
+        a_input.click(timeout=element_timeout_ms)
+        page.wait_for_timeout(random.randint(100, 300))
+        a_input.press_sequentially(
+            _normalise_a_number_for_form(a_number),
+            delay=random.randint(40, 90),
+        )
+        # Tab away to trigger Angular's blur / touched tracking
+        a_input.press("Tab")
+        page.wait_for_timeout(random.randint(200, 500))
         logger.debug("Attempt %d: filled A-number field", attempt_number)
 
         # --- Select country ---
@@ -511,12 +543,14 @@ def run_single_attempt(
         if country_sel is None:
             raise RuntimeError("Could not locate country select element")
         _select_country_option(country_sel, country, element_timeout_ms)
+        page.wait_for_timeout(random.randint(300, 700))
         logger.debug("Attempt %d: selected country '%s'", attempt_number, country)
 
         # --- Click search ---
         search_btn = resolve_locator(page, SEARCH_BUTTON)
         if search_btn is None:
             raise RuntimeError("Could not locate Search button")
+        page.wait_for_timeout(random.randint(200, 500))
         search_btn.click(timeout=element_timeout_ms)
         logger.debug("Attempt %d: clicked Search button", attempt_number)
 

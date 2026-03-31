@@ -139,10 +139,15 @@ findice smoke-test --live
 Recomendado: ejecutar `check-once` cada **20 minutos** mediante el
 Programador de Tareas de Windows.
 
+El instalador registra una tarea que usa `findice-bg.exe` — un punto de
+entrada **sin ventana** respaldado por `pythonw.exe`. No aparecerá ninguna
+ventana de terminal durante las verificaciones programadas. Para depurar,
+el punto de entrada interactivo (`findice check-once`) y el script de
+PowerShell ([`scripts/run_check.ps1`](scripts/run_check.ps1)) siguen
+disponibles.
+
 Consulte [`docs/windows_task_scheduler.md`](docs/windows_task_scheduler.md)
-para instrucciones paso a paso. El script auxiliar
-[`scripts/run_check.ps1`](scripts/run_check.ps1) es adecuado para usarse
-como acción del Programador de Tareas.
+para instrucciones paso a paso.
 
 > No ejecute con más frecuencia que cada 10 minutos; el sitio de ICE puede
 > limitar o bloquear solicitudes. Las ejecuciones finitas dirigidas por un
@@ -244,6 +249,22 @@ Esta herramienta **no debe** usarse para:
 Cualquier uso que perjudique a las personas a quienes esta herramienta está
 diseñada para ayudar es una violación de la licencia y está moralmente
 prohibido.
+
+---
+
+## Diagrama del pipeline
+
+Un diagrama de flujo interactivo que muestra el pipeline lógico completo —
+desde la invocación del CLI hasta la automatización del navegador, la
+clasificación y la notificación — está disponible en
+[`docs/pipeline_flowchart.html`](docs/pipeline_flowchart.html).
+
+Ábralo en cualquier navegador para ver cuatro diagramas:
+
+1. **Pipeline general** – CLI → configuración → orquestación → notificación → persistencia
+2. **Automatización del navegador** – lanzamiento stealth → llenado de formulario → extracción de resultados → detalles de la instalación
+3. **Clasificación** – coincidencia conservadora de frases: bot → cero → página de error → positivo → ambiguo
+4. **Resolución de selectores** – fallback por capas: ARIA → placeholder → rol → CSS → heurístico
 
 ---
 
