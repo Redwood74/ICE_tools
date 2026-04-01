@@ -1,0 +1,68 @@
+name: Issue → Teams Notification
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.TEAMS_WEBHOOK_URL != '' }}
+    steps:
+      - name: Send Teams notification
+        env:
+          WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          TITLE="${{ github.event.issue.title }}"
+          NUMBER="${{ github.event.issue.number }}"
+          URL="${{ github.event.issue.html_url }}"
+          AUTHOR="${{ github.event.issue.user.login }}"
+          ACTION="${{ github.event.action }}"
+          # Escape double quotes in the body for JSON safety
+          BODY=$(echo "${{ github.event.issue.body }}" | head -c 500 | sed 's/"/\\"/g' | tr '\n' ' ')
+
+          curl -sS -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "type": "message",
+            "attachments": [
+              {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  "type": "AdaptiveCard",
+                  "version": "1.4",
+                  "body": [
+                    {
+                      "type": "TextBlock",
+                      "size": "medium",
+                      "weight": "bolder",
+                      "text": "🔔 Issue #${NUMBER} ${ACTION}: ${TITLE}"
+                    },
+                    {
+                      "type": "FactSet",
+                      "facts": [
+                        { "title": "Author", "value": "${AUTHOR}" },
+                        { "title": "Action", "value": "${ACTION}" }
+                      ]
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "${BODY}",
+                      "wrap": true,
+                      "maxLines": 5
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "View Issue",
+                      "url": "${URL}"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+          EOF
