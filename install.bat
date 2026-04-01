@@ -220,11 +220,11 @@ if /i "%SCHEDULE%"=="n" goto :skip_schedule
 
 echo.
 echo  Setting up Task Scheduler...
-set "RUNNER=%REPO%scripts\run_check.ps1"
+set "FINDICE_BG=%REPO%.venv\Scripts\findice-bg.exe"
 set "TASK_NAME=ICEpicks_check"
 
 powershell -ExecutionPolicy Bypass -Command ^
-    "$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -File \"%RUNNER%\"' -WorkingDirectory '%REPO%'; ^
+    "$action = New-ScheduledTaskAction -Execute '\"%FINDICE_BG%\"' -Argument 'check-once' -WorkingDirectory '%REPO%'; ^
      $trigger = New-ScheduledTaskTrigger -RepetitionInterval (New-TimeSpan -Minutes 20) -Once -At (Get-Date); ^
      $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 15); ^
      Register-ScheduledTask -TaskName '%TASK_NAME%' -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -Force | Out-Null; ^

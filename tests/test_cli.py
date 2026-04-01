@@ -11,6 +11,7 @@ from findICE.cli import (
     cmd_smoke_test,
     cmd_verify_webhook,
     main,
+    main_background,
 )
 from findICE.config import AppConfig
 from findICE.models import ResultState, RunSummary
@@ -240,3 +241,67 @@ class TestMainDispatch:
 
         with pytest.raises(SystemExit):
             main(["nonexistent-command"])
+
+
+# ---------------------------------------------------------------------------
+# Windowless background entry point
+# ---------------------------------------------------------------------------
+
+
+class TestMainBackground:
+    """Tests for the ``findice-bg`` windowless entry point."""
+
+    def test_is_callable(self):
+        assert callable(main_background)
+
+    def test_forces_log_file_env(self, monkeypatch, tmp_path):
+        """LOG_FILE is set automatically if missing."""
+        monkeypatch.delenv("LOG_FILE", raising=False)
+        monkeypatch.chdir(tmp_path)
+        # Patch main() so we don't actually run a check
+        monkeypatch.setattr("findICE.cli.main", lambda argv: None)
+        main_background()
+        import os
+        assert os.environ.get("LOG_FILE") == "ICEpicks.log"
+
+    def test_unhandled_exception_is_logged(self, monkeypatch, tmp_path):
+        """Exceptions that escape main() are written to the log file."""
+        log_file = tmp_path / "crash.log"
+        monkeypatch.setenv("LOG_FILE", str(log_file))
+        monkeypatch.chdir(tmp_path)
+
+        def _exploding_main(argv):
+            raise RuntimeError("kaboom")
+
+        monkeypatch.setattr("findICE.cli.main", _exploding_main)
+
+        import pytest
+        with pytest.raises(SystemExit, match="1"):
+            main_background()
+
+        contents = log_file.read_text(encoding="utf-8")
+        assert "UNHANDLED EXCEPTION" in contents
+        assert "kaboom" in contents
+
+    def test_survives_none_stderr(self, monkeypatch, tmp_path):
+        """Works even when sys.stderr is None (pythonw.exe)."""
+        log_file = tmp_path / "bg.log"
+        monkeypatch.setenv("LOG_FILE", str(log_file))
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("sys.stderr", None)
+        monkeypatch.setattr("findICE.cli.main", lambda argv: None)
+        # Should not raise
+        main_background()
+
+
+class TestConfigureLoggingNoneStderr:
+    """Verify logging handles sys.stderr = None (pythonw.exe)."""
+
+    def test_no_crash_on_none_stderr(self, monkeypatch):
+        import findICE.logging_utils as lu
+
+        monkeypatch.setattr("sys.stderr", None)
+        # Reset the handler-installed flag so configure_logging adds handlers
+        monkeypatch.setattr(lu, "_HANDLER_INSTALLED", False)
+        # Should not raise
+        lu.configure_logging()

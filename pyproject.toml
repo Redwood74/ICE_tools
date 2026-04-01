@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "filelock>=3.0",
     "playwright>=1.42.0",
+    "playwright-stealth>=1.0.6",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0",
 ]
@@ -40,6 +41,9 @@ dev = [
 
 [project.scripts]
 findice = "findICE.cli:main"
+
+[project.gui-scripts]
+findice-bg = "findICE.cli:main_background"
 
 [project.urls]
 Homepage = "https://github.com/Redwood74/ICEpicks"

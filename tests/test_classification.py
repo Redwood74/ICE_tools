@@ -160,3 +160,13 @@ class TestFixtures:
     def test_bot_blocked_fixture(self):
         text = self._load_fixture("bot_blocked")
         assert classify_page_text(text) == ResultState.BOT_CHALLENGE_OR_BLOCKED
+
+    def test_zero_result_211_mexico(self):
+        """Fake 211-prefix A-number + Mexico returns 'zero (0) matching records'."""
+        text = self._load_fixture("zero_result_211_mexico")
+        assert classify_page_text(text) == ResultState.ZERO_RESULT
+
+    def test_internal_error_211_chile(self):
+        """Same fake 211-prefix A-number + Chile returns ICE 'Internal Error' page."""
+        text = self._load_fixture("internal_error_211_chile")
+        assert classify_page_text(text) == ResultState.AMBIGUOUS_REVIEW
